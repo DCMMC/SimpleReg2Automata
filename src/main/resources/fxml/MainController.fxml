@@ -13,7 +13,7 @@
                 <Label text="Regex Expression" style="-fx-font-size: 28" prefWidth="800"
                        alignment="CENTER"/>
                 <TextField
-                        style="-fx-font-size: 25"
+                        style="-fx-font-size: 21"
                         focusTraversable="false"
                         prefWidth="200"
                         promptText="Input the Regex Expression with '|', '*', '()' and all character in \Sigma"
@@ -22,6 +22,7 @@
                 <HBox spacing="20" alignment="BASELINE_CENTER">
                     <JFXButton text="NFA" fx:id="NFA"
                                onAction="#showNFA"
+                               focusTraversable="false"
                                style="-fx-padding: 0.7em 0.57em;
                     -fx-font-size: 18px;
                     -jfx-button-type: RAISED;
@@ -31,6 +32,7 @@
 
                     <JFXButton text="DFA" fx:id="DFA"
                                onAction="#showDFA"
+                               focusTraversable="false"
                                style="-fx-padding: 0.7em 0.57em;
                     -fx-font-size: 18px;
                     -jfx-button-type: RAISED;
@@ -40,6 +42,7 @@
 
                     <JFXButton text="minimized-DFA" fx:id="miniDFA"
                                onAction="#showMiniDFA"
+                               focusTraversable="false"
                                style="-fx-padding: 0.7em 0.57em;
                     -fx-font-size: 18px;
                     -jfx-button-type: RAISED;
@@ -50,13 +53,14 @@
                 <Label text="Match the String below" style="-fx-font-size: 28" prefWidth="800"
                        alignment="BASELINE_CENTER"/>
                 <TextField
-                        style="-fx-font-size: 25"
+                        style="-fx-font-size: 21"
                         prefWidth="200"
+                        focusTraversable="false"
                         promptText="Input the String to match"
-                        fx:id="matchStr">
-                </TextField>
+                        fx:id="matchStr"/>
                 <JFXButton text="match" fx:id="match"
                            onAction="#match"
+                           focusTraversable="false"
                            style="-fx-padding: 0.7em 0.57em;
                     -fx-font-size: 18px;
                     -jfx-button-type: RAISED;

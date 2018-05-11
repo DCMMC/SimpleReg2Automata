@@ -58,8 +58,13 @@ public class Reg2AutomataGUI extends Application {
             Parent root = FXMLLoader.load(getClass().getResource("/fxml/MainController.fxml"));
             primaryStage.setTitle("Regex expression => NFA => DFA => minimized-DFA");
 
-            primaryStage.setScene(new Scene(root, 800, 800));
+            Scene scene = new Scene(root, 800, 800);
+            primaryStage.setScene(scene);
             primaryStage.setResizable(false);
+
+
+            regStr = (TextField) scene.lookup("#regStr");
+            regStr.setOnAction((e) -> root.requestFocus());
 
             primaryStage.show();
         } catch (IOException ioe) {
@@ -108,6 +113,7 @@ public class Reg2AutomataGUI extends Application {
 
                 Stage stage = new Stage();
                 stage.setScene(scene);
+                stage.setAlwaysOnTop(true);
                 stage.show();
             }
         } catch (IOException ioe) {
@@ -150,6 +156,7 @@ public class Reg2AutomataGUI extends Application {
 
                 Stage stage = new Stage();
                 stage.setScene(scene);
+                stage.setAlwaysOnTop(true);
                 stage.show();
             }
         } catch (IOException ioe) {
@@ -196,6 +203,7 @@ public class Reg2AutomataGUI extends Application {
 
                 Stage stage = new Stage();
                 stage.setScene(scene);
+                stage.setAlwaysOnTop(true);
                 stage.show();
             }
         } catch (IOException ioe) {
@@ -212,13 +220,12 @@ public class Reg2AutomataGUI extends Application {
     public void match(ActionEvent event) {
         dialogHeading.setText("Match Result");
 
-        if (regStr.getText().isEmpty() || match.getText().isEmpty()) {
+        if (regStr.getText().isEmpty() || matchStr.getText().isEmpty()) {
             System.err.println("regex String and match String must not empty!");
             dialogLabel.setText("regex String and match String must not empty!");
             dialog.setTransitionType(JFXDialog.DialogTransition.BOTTOM);
             acceptButton.setOnAction(action -> dialog.close());
             dialog.show(root);
-            dialog.show();
         } else {
             dialog.setTransitionType(JFXDialog.DialogTransition.BOTTOM);
             acceptButton.setOnAction(action -> dialog.close());
