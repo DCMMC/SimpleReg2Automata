@@ -42,9 +42,11 @@ repositories {
     // You can declare any Maven/Ivy/file repository here.
     jcenter()
 
-    // mavenCentral()
+    mavenCentral()
 
     maven{ url 'https://repo1.maven.org/maven2/'}
+
+    maven { url "https://jitpack.io" }
 
     // maven{ url 'http://maven.aliyun.com/nexus/content/groups/public/'}
 }
@@ -66,4 +68,7 @@ dependencies {
     // pinch-to-zoom pane lib
     compile 'net.kurobako.gesturefx:gesturefx:0.2.0'
 
+    // svg
+    // implementation 'com.github.DCMMC:svgSalamander:v1.1.1'
+    implementation 'com.github.elbosso:batik:mitigating-java9-module-system-screw-up-SNAPSHOT'
 }

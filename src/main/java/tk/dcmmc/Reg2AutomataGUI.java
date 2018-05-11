@@ -2,7 +2,10 @@ package tk.dcmmc;
 
 import com.jfoenix.controls.JFXButton;
 import com.jfoenix.controls.JFXDialog;
+// import com.kitfox.svg.app.beans.SVGPanel;
+import guru.nidi.graphviz.engine.Format;
 import javafx.application.Application;
+import javafx.embed.swing.SwingNode;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -15,8 +18,14 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.event.ActionEvent;
 import net.kurobako.gesturefx.GesturePane;
+import org.apache.batik.swing.JSVGCanvas;
+import org.apache.batik.swing.JSVGScrollPane;
+
+import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Scanner;
 
 import static tk.dcmmc.Reg2Automata.*;
 
@@ -36,21 +45,11 @@ public class Reg2AutomataGUI extends Application {
     @FXML
     private JFXButton acceptButton;
     @FXML
-    private JFXButton NFA;
-    @FXML
-    private JFXButton DFA;
-    @FXML
-    private JFXButton miniDFA;
-    @FXML
     private TextField matchStr;
-    @FXML
-    private JFXButton match;
     @FXML
     private Label dialogLabel;
     @FXML
     private Label dialogHeading;
-
-    private StackPane svgPane;
 
     @Override
     public void start(Stage primaryStage) {
@@ -73,6 +72,18 @@ public class Reg2AutomataGUI extends Application {
     }
 
     /**
+     * show an error dialog if the textField is empty
+     */
+    private void emptyStringError() {
+        System.err.println("Regex expression must not empty!");
+        dialogHeading.setText("Error");
+        dialogLabel.setText("Regex Expression String must not empty!");
+        dialog.setTransitionType(JFXDialog.DialogTransition.BOTTOM);
+        acceptButton.setOnAction(action -> dialog.close());
+        dialog.show(root);
+    }
+
+    /**
      * show the result svg
      * @param event
      *      click event
@@ -81,20 +92,15 @@ public class Reg2AutomataGUI extends Application {
     public void showNFA(ActionEvent event) {
         try {
             if(regStr != null && regStr.getText().isEmpty()) {
-                System.err.println("Regex expression must not empty!");
-                dialogLabel.setText("Regex Expression String must not empty!");
-                dialogHeading.setText("Error");
-                dialog.setTransitionType(JFXDialog.DialogTransition.BOTTOM);
-                acceptButton.setOnAction(action -> dialog.close());
-                dialog.show(root);
+                emptyStringError();
             } else if (regStr != null) {
                 Parent root1 = FXMLLoader.load(getClass().getResource("/fxml/SVGView.fxml"));
                 Scene scene = new Scene(root1, 1200, 800);
                 StackPane svgPane = (StackPane) scene.lookup("#svgPane");
                 try {
                     graphvizDraw(reg2NFA(regStr.getText()).first,
-                            "NFA.png",
-                            null);
+                            "NFA.svg",
+                            null, Format.SVG);
                 } catch (Exception e) {
                     e.printStackTrace();
                     throw new RuntimeException(e);
@@ -102,14 +108,31 @@ public class Reg2AutomataGUI extends Application {
 
                 File file = new File("graphs"
                         + File.separator
-                        + "NFA.png");
+                        + "NFA.svg");
 
+                Scanner sc = new Scanner(file);
+                String svg = sc.useDelimiter("\\Z").next();
+                svg = svg.replaceAll("stroke=\"transparent\"", "");
+                // svg = svg.replaceAll("font-family=\"Times,serif\"", "font-family=\"Arial\"");
+                try (PrintWriter pw = new PrintWriter(file)) {
+                    pw.print(svg);
+                }
 
-                ImageView view = new ImageView(new Image(file.toURI().toURL().toString()));
+                SwingNode node = new SwingNode();
+//                SVGPanel pane = new SVGPanel();
+//                pane.setAntiAlias(true);
+//                pane.setAutosize(SVGPanel.AUTOSIZE_NONE);
+//                pane.setSvgURI(file.toURI());
 
-                GesturePane pane = new GesturePane(view);
+                JSVGCanvas canvas = new JSVGCanvas();
+                canvas.setURI(file.toURI().toString());
+                JSVGScrollPane pane = new JSVGScrollPane(canvas);
 
-                svgPane.getChildren().add(pane);
+                SwingUtilities.invokeLater(() -> node.setContent(pane));
+
+                GesturePane gesturePane = new GesturePane(node);
+
+                svgPane.getChildren().add(gesturePane);
 
                 Stage stage = new Stage();
                 stage.setScene(scene);
@@ -125,12 +148,7 @@ public class Reg2AutomataGUI extends Application {
     public void showDFA(ActionEvent event) {
         try {
             if(regStr != null && regStr.getText().isEmpty()) {
-                System.err.println("Regex expression must not empty!");
-                dialogHeading.setText("Error");
-                dialogLabel.setText("Regex Expression String must not empty!");
-                dialog.setTransitionType(JFXDialog.DialogTransition.BOTTOM);
-                acceptButton.setOnAction(action -> dialog.close());
-                dialog.show(root);
+                emptyStringError();
             } else if (regStr != null) {
                 Parent root1 = FXMLLoader.load(getClass().getResource("/fxml/SVGView.fxml"));
                 Scene scene = new Scene(root1, 1200, 800);
@@ -138,7 +156,7 @@ public class Reg2AutomataGUI extends Application {
                 try {
                     Bag<Integer> newFinals = new Bag<>();
                     graphvizDraw(NFA2DFA(reg2NFA(regStr.getText()), newFinals).first,
-                            "DFA.png", newFinals);
+                            "DFA.svg", newFinals, Format.SVG);
                 } catch (Exception e) {
                     e.printStackTrace();
                     throw new RuntimeException(e);
@@ -146,13 +164,31 @@ public class Reg2AutomataGUI extends Application {
 
                 File file = new File("graphs"
                         + File.separator
-                        + "DFA.png");
+                        + "DFA.svg");
 
-                ImageView view = new ImageView(new Image(file.toURI().toURL().toString()));
+                Scanner sc = new Scanner(file);
+                String svg = sc.useDelimiter("\\Z").next();
+                svg = svg.replaceAll("stroke=\"transparent\"", "");
+                // svg = svg.replaceAll("font-family=\"Times,serif\"", "font-family=\"Arial\"");
+                try (PrintWriter pw = new PrintWriter(file)) {
+                    pw.print(svg);
+                }
 
-                GesturePane pane = new GesturePane(view);
+//                ImageView view = new ImageView(new Image(file.toURI().toURL().toString()));
+//
+//                GesturePane pane = new GesturePane(view);
 
-                svgPane.getChildren().add(pane);
+                SwingNode node = new SwingNode();
+
+                JSVGCanvas canvas = new JSVGCanvas();
+                canvas.setURI(file.toURI().toString());
+                JSVGScrollPane pane = new JSVGScrollPane(canvas);
+
+                SwingUtilities.invokeLater(() -> node.setContent(pane));
+
+                GesturePane gesturePane = new GesturePane(node);
+
+                svgPane.getChildren().add(gesturePane);
 
                 Stage stage = new Stage();
                 stage.setScene(scene);
@@ -168,12 +204,7 @@ public class Reg2AutomataGUI extends Application {
     public void showMiniDFA(ActionEvent event) {
         try {
             if(regStr != null && regStr.getText().isEmpty()) {
-                System.err.println("Regex expression must not empty!");
-                dialogHeading.setText("Error");
-                dialogLabel.setText("Regex Expression String must not empty!");
-                dialog.setTransitionType(JFXDialog.DialogTransition.BOTTOM);
-                acceptButton.setOnAction(action -> dialog.close());
-                dialog.show(root);
+                emptyStringError();
             } else if (regStr != null) {
                 Parent root1 = FXMLLoader.load(getClass().getResource("/fxml/SVGView.fxml"));
                 Scene scene = new Scene(root1, 1200, 800);
@@ -181,10 +212,11 @@ public class Reg2AutomataGUI extends Application {
                 try {
                     Bag<Integer> newFinals = new Bag<>();
                     graphvizDraw(NFA2DFA(reg2NFA(regStr.getText()), newFinals).first,
-                            "DFA.png", newFinals);
+                            "DFA.svg", newFinals, Format.SVG);
                     Pointer<Bag<Integer>> ptFinals = new Pointer<>(newFinals);
                     graphvizDraw(minimizeDFA(NFA2DFA(reg2NFA(regStr.getText()),
-                            newFinals), ptFinals).first, "minimized-DFA.png", ptFinals.item);
+                            newFinals), ptFinals).first, "minimized-DFA.svg", ptFinals.item,
+                            Format.SVG);
                 } catch (Exception e) {
                     e.printStackTrace();
                     throw new RuntimeException(e);
@@ -192,14 +224,32 @@ public class Reg2AutomataGUI extends Application {
 
                 File file = new File("graphs"
                         + File.separator
-                        + "minimized-DFA.png");
+                        + "minimized-DFA.svg");
 
+                Scanner sc = new Scanner(file);
+                String svg = sc.useDelimiter("\\Z").next();
+                svg = svg.replaceAll("stroke=\"transparent\"", "");
+                // svg = svg.replaceAll("font-family=\"Times,serif\"", "font-family=\"Arial\"");
+                try (PrintWriter pw = new PrintWriter(file)) {
+                    pw.print(svg);
+                }
 
-                ImageView view = new ImageView(new Image(file.toURI().toURL().toString()));
+//
+//                ImageView view = new ImageView(new Image(file.toURI().toURL().toString()));
+//
+//                GesturePane pane = new GesturePane(view);
 
-                GesturePane pane = new GesturePane(view);
+                SwingNode node = new SwingNode();
 
-                svgPane.getChildren().add(pane);
+                JSVGCanvas canvas = new JSVGCanvas();
+                canvas.setURI(file.toURI().toString());
+                JSVGScrollPane pane = new JSVGScrollPane(canvas);
+
+                SwingUtilities.invokeLater(() -> node.setContent(pane));
+
+                GesturePane gesturePane = new GesturePane(node);
+
+                svgPane.getChildren().add(gesturePane);
 
                 Stage stage = new Stage();
                 stage.setScene(scene);

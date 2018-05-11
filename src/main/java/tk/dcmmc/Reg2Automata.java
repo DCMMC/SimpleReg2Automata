@@ -2489,11 +2489,14 @@ public class Reg2Automata {
      *          file name in graph directory
      * @param finals
      *          set of final states, if e-NFA genrated by Thomposon's Algorithm then finals is null
+     * @param format
+     *          format of output file
      * @throws
      *          if the type of EdgeT is neither String nor HashSet
      */
     @SuppressWarnings("unchecked")
-    static <EdgeT> void graphvizDraw(Graph<Integer, EdgeT> FA, String fileName, Bag<Integer> finals)
+    static <EdgeT> void graphvizDraw(Graph<Integer, EdgeT> FA, String fileName, Bag<Integer> finals,
+                                     Format format)
             throws Exception {
         // **Be careful: all elements(like Graph and Node) of graphviz is immutable!!**
         guru.nidi.graphviz.model.Graph g = graph("FA").directed();
@@ -2563,7 +2566,7 @@ public class Reg2Automata {
                 System.out.println("Output file path: " +
                         new File("graphs" + File.separator
                         + fileName).getAbsolutePath());
-                Graphviz.fromGraph(g).width(1000).render(Format.PNG).toFile(new File("graphs"
+                Graphviz.fromGraph(g).width(1000).render(format).toFile(new File("graphs"
                         + File.separator
                         + fileName));
             }
@@ -2603,12 +2606,12 @@ public class Reg2Automata {
         try {
             Bag<Integer> newFinals = new Bag<>();
             graphvizDraw(reg2NFA(testReg1).first, "NFA.png",
-                    null);
+                    null, Format.SVG);
             graphvizDraw(NFA2DFA(reg2NFA(testReg1), newFinals).first,
-                    "DFA.png", newFinals);
+                    "DFA.png", newFinals, Format.SVG);
             Pointer<Bag<Integer>> ptFinals = new Pointer<>(newFinals);
             graphvizDraw(minimizeDFA(NFA2DFA(reg2NFA(testReg1),
-                    newFinals), ptFinals).first, "minimized-DFA.png", ptFinals.item);
+                    newFinals), ptFinals).first, "minimized-DFA.png", ptFinals.item, Format.SVG);
         } catch (Exception e) {
             e.printStackTrace();
         }
