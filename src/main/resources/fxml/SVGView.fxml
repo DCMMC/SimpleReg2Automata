@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import com.jfoenix.controls.*?>
+<StackPane fx:id="root1" xmlns:fx="http://javafx.com/fxml/1"
+           xmlns="http://javafx.com/javafx/2.2"
+           fx:controller="tk.dcmmc.Reg2AutomataGUI">
+    <BorderPane>
+        <center>
+            <StackPane fx:id="svgPane">
+            </StackPane>
+        </center>
+    </BorderPane>
+</StackPane>

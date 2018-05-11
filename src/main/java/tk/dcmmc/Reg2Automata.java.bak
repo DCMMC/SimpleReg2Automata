@@ -1,0 +1,1877 @@
+package tk.dcmmc;
+
+import com.sun.jdi.InvalidTypeException;
+import guru.nidi.graphviz.attribute.*;
+import guru.nidi.graphviz.engine.Format;
+import guru.nidi.graphviz.engine.Graphviz;
+import guru.nidi.graphviz.model.Link;
+import guru.nidi.graphviz.model.Node;
+import org.apache.xmlgraphics.util.dijkstra.Edge;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.InvalidParameterException;
+import java.util.Iterator;
+import java.util.Scanner;
+import java.lang.reflect.Array;
+import java.util.ConcurrentModificationException;
+import java.util.NoSuchElementException;
+import java.util.Comparator;
+import static guru.nidi.graphviz.model.Factory.graph;
+import static guru.nidi.graphviz.model.Factory.node;
+import static guru.nidi.graphviz.model.Factory.to;
+
+/**
+ * C style Pointer container
+ * @param <T>
+ */
+class Pointer<T> {
+    T item;
+
+    Pointer() {
+
+    }
+
+    Pointer(T t) {
+        item = t;
+    }
+}
+
+/**
+ * Pair
+ */
+class Pair<F, S> {
+    F first;
+    S second;
+
+    public Pair(F first, S second) {
+        this.first = first;
+        this.second = second;
+    }
+
+    public F getFirst() {
+        return first;
+    }
+
+    public S getSecond() {
+        return second;
+    }
+}
+
+/**
+ * class comment : Generic Type Bag
+ * 使用SLL(Single Linked List)实现的Bag.
+ * Bag: 一种只能添加元素, 不能删除元素, 可以用foreach遍历的一种ADT.
+ * @author DCMMC
+ * Created by DCMMC on 2017/7/24.
+ */
+class Bag<Item> implements Iterable<Item> {
+    /**************************************
+     * Fields                             *
+     **************************************/
+    //当前Bag中的元素个数
+    private int size = 0;
+
+    //头节点也就是最早加入的节点, 初始为null
+    private Node first;
+
+
+
+    /**************************************
+     * Constructors                       *
+     **************************************/
+    /**
+     * 默认构造器
+     */
+    public Bag() {
+
+    }
+
+    /**************************************
+     * Inner Class                        *
+     **************************************/
+    /**
+     * Linked List节点
+     */
+    private class Node {
+        //节点中保存的元素, 初始化为null
+        Item item;
+
+        //下一个节点, 初始化为null
+        Node next;
+
+        //构造器
+        Node(Item item) {
+            this.item = item;
+        }
+    }
+
+    /**
+     * 成员内部类
+     * 用于遍历这个Bag
+     */
+    private class BagIterator implements Iterator<Item> {
+        private Bag<Item>.Node current = first;
+
+        /**
+         * 返回当前遍历是否还有下一个元素
+         * @return Bag中上个被遍历的元素后面还有元素就返回true
+         */
+        @Override
+        public boolean hasNext() {
+            return current != null;
+        }
+
+        /**
+         * 继续遍历Bag后面的所有元素
+         * @return 下一个元素的值
+         */
+        @Override
+        public Item next() {
+            if (hasNext()) {
+                Item item = current.item;
+                current = current.next;
+                return item;
+            }
+            else
+                return null;
+        }
+
+    }
+
+    /**************************************
+     * Methods     		                  *
+     **************************************/
+    /**
+     * 向Bag中添加新的元素
+     * @param item 新元素
+     */
+    public void add(Item item) {
+        //如果LinkedList里面还没有任何元素
+        if (first == null) {
+            first = new Node(item);
+        } else {
+            Node tmpFirst = new Node(item);
+            tmpFirst.next = first;
+            first = tmpFirst;
+        }
+        size++;
+    }
+
+
+    /**
+     * 获得当前Bag存储了多少个元素
+     * @return 当前Bag存储的多少个元素
+     */
+    public int getSize() {
+        return size;
+    }
+
+    /**
+     * 判断Bag是否是空的
+     * @return 判断Bag是否是空的
+     */
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    /**
+     * 判断Bag是否已满, SLL的实现方案直接都返回true
+     * @return 判断Bag是否已满
+     */
+    public boolean isFull() {
+        return false;
+    }
+
+
+
+    /**
+     * Returns an iterator over elements of type {@code T}.
+     *
+     * @return an Iterator.
+     */
+    public Iterator<Item> iterator() {
+        return this.new BagIterator();
+    }
+
+    /**
+     * Test Client.
+     * @param args
+     *			command-line arguments.
+     */
+    public static void main(String[] args) {
+        //foreach遍历测试
+        System.out.println("foreach遍历测试");
+
+        Bag<Integer> bag = new Bag<>();
+        bag.add(5);
+        bag.add(2);
+        bag.add(1);
+        bag.add(7);
+
+        //遍历
+        for (int i : bag) {
+            System.out.println(i);
+        }
+
+    }
+}
+
+/**
+ * class comment : Generic Type Double Linked List(DLLists)
+ * @author DCMMC
+ * Created by DCMMC on 2017/7/24.
+ */
+class DoubleLinkedList<Item> implements Iterable<Item> {
+    /*
+     **************************************
+     * Fields                             *
+     **************************************/
+    //当前List中的元素个数
+    private int size = 0;
+
+    //头节点也就是最早加入的节点, 初始为null
+    private Node first;
+
+    //尾节点也就是最晚加入的节点, 初始化为null
+    private Node last;
+
+    //为ReverseArrayIterator迭代器记录对List的操作次数, 防止在迭代的过程中List被更改
+    private int opsCnt;
+
+
+
+    /*
+     **************************************
+     * Constructors                       *
+     **************************************/
+    /**
+     * 默认构造器
+     */
+    public DoubleLinkedList() {
+
+    }
+
+    /**
+     * 从数组创建LinkedList
+     * 基本类型数组并不能向上转型为Item[](Object[]), 不过(基本类型)数组都可以向上转型为Object, 然后再利用
+     * java.lang.reflect.Array类获取index和get元素. 在强制向下转型为Item
+     * @param array
+     *           Item数组
+     */
+    @SuppressWarnings("unchecked")
+    public DoubleLinkedList(Object array) {
+        int length = Array.getLength(array);
+
+        for (int i = 0; i < length; i++)
+            addLast( (Item)Array.get(array, i));
+    }
+
+    /**
+     * 从可变参数中创建LinkedList
+     * @param arrayElements
+     *           可变长参数
+     */
+    @SuppressWarnings("unchecked")
+    public DoubleLinkedList(Item... arrayElements) {
+        for (Item i : arrayElements)
+            addLast(i);
+    }
+
+    /*
+     **************************************
+     * Inner Class                        *
+     **************************************/
+    /**
+     * Linked List节点
+     */
+    private class Node {
+        //节点中保存的元素, 初始化为null
+        Item item;
+
+        //下一个节点, 初始化为null
+        Node next;
+
+        //上一个节点
+        Node previous;
+
+        //构造器
+        Node(Item item) {
+            this.item = item;
+        }
+    }
+
+    /**
+     * 成员内部类
+     * 用于遍历这个DoubleLinkedList
+     */
+    private class ReverseArrayIterator implements Iterator<Item> {
+        //为当前opsCnt创建副本
+        private final int opsCntCopy = opsCnt;
+
+        private DoubleLinkedList<Item>.Node current = first;
+
+        /**
+         * 返回当前遍历是否还有下一个元素
+         * @return List中上个被遍历的元素后面还有元素就返回true
+         * @throws ConcurrentModificationException
+         *         如果在迭代期间, List被修改, 就抛出异常
+         */
+        @Override
+        public boolean hasNext() throws ConcurrentModificationException {
+            if (opsCntCopy != opsCnt)
+                throw new ConcurrentModificationException();
+
+            return current != null;
+        }
+
+        /**
+         * 继续遍历List后面的所有元素
+         * @return 下一个元素的值
+         * @throws ConcurrentModificationException
+         *         如果在迭代期间, List被修改, 就抛出异常
+         */
+        @Override
+        public Item next() throws ConcurrentModificationException {
+            if (opsCntCopy != opsCnt)
+                throw new ConcurrentModificationException();
+
+            if (hasNext()) {
+                Item item = current.item;
+                current = current.next;
+                return item;
+            }
+            else
+                return null;
+        }
+
+    }
+
+    /*
+     **************************************
+     * Methods                            *
+     **************************************/
+
+    /**
+     * 返回由DoubleLinkedList表示的数组(FIFO)
+     * @return 返回List中存储的所有引用类型(包装类型)的数组, 因为泛型擦除, 所以调用的时候需要强制把返回的Object[]转化为目标类型(i.e
+     * Item[]), 而且通过构造器DoubleLinkedList(Object array)创建的基本类型List会被转化为引用类型.
+     */
+    @SuppressWarnings("unchecked")
+    public Item[] toArray() {
+        if (first == null || first.item == null)
+            return null;
+
+        Item[] array = (Item[])java.lang.reflect.Array.newInstance(first.item.getClass(), getSize());
+        //不能像下面这样做, 因为实质性的array还是Object[], 而上面的虽然转换成了Object(Item[]), 但是通过RTTI可以知道其是一个Item所属的
+        //引用类型的数组
+        //Item[] array = (Item[])new Object[getSize()];
+
+        ReverseArrayIterator iter = new ReverseArrayIterator();
+
+        int index = 0;
+
+        while (iter.hasNext())
+            array[index++] = iter.next();
+
+        return array;
+    }
+
+    /**
+     * 从DoubleLinkedList中的前端添加新的元素(模拟LIFO)
+     * @param item 新元素
+     */
+    public void addFirst(Item item) {
+        //如果LinkedList里面还没有任何元素
+        if (first == null) {
+            last = first = new Node(item);
+            size++;
+            opsCnt++;
+        } else {
+            Node tmpFirst = new Node(item);
+            tmpFirst.next = this.first;
+            this.first.previous = tmpFirst;
+            first = tmpFirst;
+            size++;
+            opsCnt++;
+        }
+    }
+
+    /**
+     * 从DoubleLinkedList中的后端添加新的元素(模拟FIFO)
+     * @param item 新元素
+     */
+    public void addLast(Item item) {
+        //如果LinkedList里面还没有任何元素
+        if (last == null) {
+            last = first = new Node(item);
+            size++;
+            opsCnt++;
+        } else {
+            Node tmpLast = new Node(item);
+            last.next = tmpLast;
+            tmpLast.previous = this.last;
+            last = tmpLast;
+            size++;
+            opsCnt++;
+        }
+    }
+
+    /**
+     * 从给定的offset后面插入指定的值
+     * @param offset
+     *           在offset后插入新的节点
+     * @param item
+     *           新的这个节点中Item的值
+     * @throws IndexOutOfBoundsException 如果offset不存在就抛出异常
+     */
+    public void add(int offset, Item item) throws IndexOutOfBoundsException {
+        outOfBoundsCheck(offset);
+
+        int index = 0;
+        Node current = first;
+        while (current.next != null) {
+            if (index++ == offset) {
+                //找到该offset所在的Node
+                Node newNode = new Node(item);
+                newNode.previous = current;
+                newNode.next = current.next;
+                current.next = newNode;
+                size++;
+                opsCnt++;
+            }
+
+            //继续向后遍历
+            current = current.next;
+        }
+
+        //那就可能是last那个Node
+        if (index == offset) {
+            //找到该offset所在的Node
+            Node newNode = new Node(item);
+            newNode.previous = current;
+            newNode.next = current.next;
+            current.next = newNode;
+            last = newNode;
+            size++;
+            opsCnt++;
+        }
+
+    }
+
+    /**
+     * 从任意的offset中获取item, 并把这个item所在的Node从List中删除
+     * @param offset
+     *           要获取的元素的offset, 0 <= offset <= getSize() - 1
+     * @return 要获取的元素
+     * @throws IndexOutOfBoundsException 如果offset不存在就抛出异常
+     * @throws NoSuchElementException 如果List为空
+     */
+    public Item pop(int offset) throws IndexOutOfBoundsException, NoSuchElementException {
+        outOfBoundsCheck(offset);
+        if (getSize() == 0)
+            throw new NoSuchElementException("This DoubleLinkedList is empty!");
+
+        int index = 0;
+        Node current = first;
+        while (current.next != null) {
+            if (index++ == offset) {
+                //如果获取到该offset所在的Node
+                //如果是first
+                if (current.previous == null) {
+                    //如果List只有一个元素
+                    if (first.next == null)
+                        first = last = null;
+                    else {
+                        first = first.next;
+                        first.previous = null;
+                    }
+                } else {
+                    current.previous.next = current.next;
+                }
+                size--;
+                opsCnt++;
+                return current.item;
+            }
+
+            //继续向后遍历
+            current = current.next;
+        }
+
+        //如果是last(first)
+        //记得减回去
+        if (index == offset) {
+            //如果只有一个元素
+            if (getSize() == 1) {
+                first = last = null;
+            } else {
+                last = last.previous;
+                last.next = null;
+            }
+            size--;
+            opsCnt++;
+            return current.item;
+        }
+
+        return null;
+    }
+
+
+    /**
+     * 返回List前端的元素, 并把该元素从List中删除.(模拟LIFO)
+     * @throws NoSuchElementException
+     * if the client attempts to remove an item from an empty list
+     * @return List前端第一个元素
+     */
+    public Item popFirst() {
+        if (getSize() == 0)
+            throw new NoSuchElementException("This DoubleLinkedList is empty!");
+
+        return pop(0);
+    }
+
+    /**
+     * 返回List后端的元素, 并把该元素从List中删除.(模拟FIFO)
+     * @throws NoSuchElementException
+     * if the client attempts to remove an item from an empty list
+     * @return List后端最后一个元素
+     */
+    @SuppressWarnings("unchecked")
+    public Item popLast() {
+        if (getSize() == 0)
+            throw new NoSuchElementException("This DoubleLinkedList is empty!");
+
+        Item lastItem = last.item;
+
+        //如果只有一个元素
+        if (getSize() == 1) {
+            first = last = null;
+        } else {
+            last = last.previous;
+            last.next = null;
+        }
+        size--;
+        opsCnt++;
+        return lastItem;
+    }
+
+    /**
+     * 用List中删除指定offset的元素
+     * @offset   要删除的元素的序号
+     * @throws IndexOutOfBoundsException 如果offset不存在就抛出异常
+     */
+    public void remove(int offset) throws IndexOutOfBoundsException {
+        outOfBoundsCheck(offset);
+
+        pop(offset);
+    }
+
+
+    /**
+     * 返回List后端的元素, 并且不会删除这个元素
+     * @return List前端第一个元素
+     */
+    public Item getFirst() {
+        //如果List为空就返回null
+        if (first == null)
+            return null;
+
+        return first.item;
+    }
+
+    /**
+     * 返回List后端的元素, 并且不会删除这个元素
+     * @return List后端最后一个元素
+     */
+    public Item getLast() {
+        //如果List为空就返回null
+        if (last == null)
+            return null;
+
+        return last.item;
+    }
+
+    /**
+     * 从任意的offset中获取item, 并且不会删除这个元素
+     * @param offset
+     *           要获取的元素的offset, 0 <= offset <= getSize() - 1
+     * @return 要获取的元素
+     * @throws IndexOutOfBoundsException 如果offset不存在就抛出异常
+     */
+    public Item get(int offset) throws IndexOutOfBoundsException {
+        outOfBoundsCheck(offset);
+
+        int index = 0;
+        Node current = first;
+        while (current.next != null) {
+            if (index++ == offset)
+                return current.item;
+
+            //继续向后遍历
+            current = current.next;
+        }
+
+        //如果是last
+        if (index == offset)
+            return current.item;
+
+        return null;
+    }
+
+    /**
+     * get first node, **be careful to use it**!
+     * @return
+     *      first node
+     */
+    public DoubleLinkedList<Item>.Node getFirstNode() {
+        return first;
+    }
+
+    /**
+     * get the last node, **be careful to use it**!
+     * @return
+     *      last node
+     */
+    public DoubleLinkedList<Item>.Node getLastNode() {
+        return last;
+    }
+
+    /**
+     * Concatenate this list with another list, **be careful to use it**!
+     * @param another
+     *          another list
+     * @return
+     *          this list
+     */
+    public DoubleLinkedList<Item> concate(DoubleLinkedList<Item> another) {
+        this.last.next = another.getFirstNode();
+        another.getFirstNode().previous = this.last;
+        this.last = another.getLastNode();
+        this.size += another.getSize();
+
+        return this;
+    }
+
+
+    /**
+     * 将指定offset的元素中的内容更换
+     * @param offset
+     *           元素的序列
+     * @param item
+     *           该Node上的新item
+     * @return 该Node上的旧值
+     * @throws IndexOutOfBoundsException 如果offset不存在就抛出异常
+     */
+    public Item modify(int offset, Item item) throws IndexOutOfBoundsException {
+        outOfBoundsCheck(offset);
+
+        int index = 0;
+        Node current = first;
+        while (current.next != null) {
+            if (index++ == offset) {
+                Item oldItem = current.item;
+                current.item = item;
+                return oldItem;
+            }
+
+
+            //继续向后遍历
+            current = current.next;
+        }
+
+        //可能是last
+        if (index == offset) {
+            Item oldItem = current.item;
+            current.item = item;
+            return oldItem;
+        }
+
+        return null;
+    }
+
+    /**
+     * Ex 2.2.17
+     * mergesort the list
+     */
+    public void mergesort() {
+        //check
+        if ( first.item == null || !(first.item instanceof Comparable) )  {
+            //err
+            System.out.println("the items (" + first.item.getClass() + ") stored in List are not intanceof Comparable,"
+                    +  "you can use the Comparator version of mergesort.");
+            return;
+        }
+
+        //创建辅助数组, 只额外分配一次
+        Comparable[] auxLocal = new Comparable[getSize()];
+
+        sort(auxLocal, 0, getSize() - 1);
+    }
+
+    /**
+     * Ex 2.2.17
+     * mergesort the list with Comparator
+     * @param comp
+     *           比较器
+     */
+    public void mergesort(Comparator comp) {
+        //创建辅助数组, 只额外分配一次
+        Object[] auxLocal = new Object[getSize()];
+
+        sort(comp, auxLocal, 0, getSize() - 1);
+    }
+
+    /**
+     * Ex 2.2.18
+     * 有点难度
+     * Shuffling linked list using divide-and-conquer design diagram
+     */
+    public void shuffle() {
+
+    }
+
+
+    /**
+     * 获得当前Stack存储了多少个元素
+     * @return 当前Stack存储的多少个元素
+     */
+    public int getSize() {
+        return size;
+    }
+
+    /**
+     * 判断Stack是否是空的
+     * @return 判断Stack是否是空的
+     */
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    /**
+     * 判断Stack是否已满, resizing-capacity array的实现方案直接都返回true
+     * @return 判断Stack是否已满
+     */
+    public boolean isFull() {
+        //这是原来fixed-capacity array实现的stack的方案
+        //return getSize() >= MAXSIZE;
+
+        //新的resizing-capacity array实现的stack, 直接返回false.
+        return false;
+    }
+
+    /**
+     * Returns an iterator over elements of type {@code T}.
+     *
+     * @return an Iterator.
+     */
+    public Iterator<Item> iterator() {
+        return this.new ReverseArrayIterator();
+    }
+
+    /**
+     * 更加易读的toString信息
+     * @return 关于该List中所有元素的打印
+     */
+    @Override
+    public String toString() {
+        if (getSize() == 0)
+            return "没有任何元素.";
+
+        Iterator<Item> itr = iterator();
+
+        String info = "[ ";
+
+        while (itr.hasNext()) {
+            info += (itr.next() + ", ");
+        }
+
+        info = info.substring(0, info.length() - 2);
+
+        info += ("] (总共有" + getSize() + "个"
+                + first.item.getClass().toString().replaceFirst("class ", "")
+                + "型元素.)");
+
+        return info;
+    }
+
+    /**
+     * Ex 2.2.17
+     * 采用自顶向下的方法(递归)排序List中的指定的部分
+     * @param aux
+     *       局部暂存数组
+     * @param lo
+     *       要排序的部分的第一个元素的下标
+     * @param hi
+     *       要排序的部分的最后一个元素的下标
+     */
+    private void sort(Comparable[] aux, int lo, int hi) {
+        //当只有一个元素的时候, 这个子序列一定是排序好的了, 所以这就作为递归结束的条件
+        if (lo >= hi)
+            return;
+
+        int mid = lo + (hi - lo) / 2;
+
+        //下述代码形成一个二叉树形结构, 或者用trace表示为一个自顶向下的结构(top-down)
+        //sort left half
+        sort(aux, lo, mid);
+        //sort right half
+        sort(aux, mid + 1, hi);
+
+        //merge才是真正的比较的地方, 上面的代码只是会形成二叉树, 真正的比较是在merge中
+        merge(aux, lo , mid, hi);
+    }
+
+    /**
+     * Ex 2.2.17
+     * merge(optimized version)
+     * @param aux
+     *       暂存数组, 有方法参数传递, 使用方法局部变量
+     * @param lo
+     *       要归并的前半部分的起始下标
+     * @param mid
+     *       要归并的前半部分的最后一个元素的下标
+     * @param hi
+     *       要归并的后半部分的最后一个元素的下标
+     */
+    @SuppressWarnings("unchecked")
+    private void merge(Comparable[] aux, int lo, int mid, int hi) {
+        //check是否本身lo...hi就已经是排序好的了, 提高效率
+        if ( ((Comparable)get(mid)).compareTo((Comparable)get(mid + 1)) <= 0)
+            return;
+
+        //先将数据暂存在辅助数组中
+        for (int i = lo; i <= hi; i++)
+            aux[i] = (Comparable)get(i);
+
+
+        //i, j分别为两部分的第一个元素的下标
+        int i = lo;
+        int j = mid + 1;
+        //归并
+        //先找到lo所在的结点
+        Node current = first;
+        int index = 0;
+
+        while (index++ != lo) {
+            current = current.next;
+        }
+
+        //前面index++, 这里一定要记得减回去
+        index--;
+
+        while (index <= hi) {
+            if (i > mid)
+                current.item = (Item)aux[j++];
+            else if (j > hi)
+                current.item = (Item)aux[i++];
+            else if (aux[j].compareTo(aux[i]) < 0)
+                current.item = (Item)aux[j++];
+            else
+                current.item = (Item)aux[i++];
+
+            current = current.next;
+            index++;
+        }
+    }
+
+    /**
+     * Ex 2.2.17
+     * 采用自顶向下的方法(递归)和给定的Comparator排序List中的指定的部分
+     * @param comp
+     *       比较器
+     * @param aux
+     *       局部暂存数组
+     * @param lo
+     *       要排序的部分的第一个元素的下标
+     * @param hi
+     *       要排序的部分的最后一个元素的下标
+     */
+    private void sort(Comparator comp, Object[] aux, int lo, int hi) {
+        //当只有一个元素的时候, 这个子序列一定是排序好的了, 所以这就作为递归结束的条件
+        if (lo >= hi)
+            return;
+
+        int mid = lo + (hi - lo) / 2;
+
+        //下述代码形成一个二叉树形结构, 或者用trace表示为一个自顶向下的结构(top-down)
+        //sort left half
+        sort(comp, aux, lo, mid);
+        //sort right half
+        sort(comp, aux, mid + 1, hi);
+
+        //merge才是真正的比较的地方, 上面的代码只是会形成二叉树, 真正的比较是在merge中
+        merge(comp, aux, lo , mid, hi);
+    }
+
+    /**
+     * Ex 2.2.17
+     * merge(optimized version) with Comparator
+     * @param comp
+     *       比较器
+     * @param aux
+     *       暂存数组, 有方法参数传递, 使用方法局部变量
+     * @param lo
+     *       要归并的前半部分的起始下标
+     * @param mid
+     *       要归并的前半部分的最后一个元素的下标
+     * @param hi
+     *       要归并的后半部分的最后一个元素的下标
+     */
+    @SuppressWarnings("unchecked")
+    private void merge(Comparator comp, Object[] aux, int lo, int mid, int hi) {
+        //check是否本身lo...hi就已经是排序好的了, 提高效率
+        if ( comp.compare(get(mid), get(mid + 1)) <= 0)
+            return;
+
+        //先将数据暂存在辅助数组中
+        for (int i = lo; i <= hi; i++)
+            aux[i] = get(i);
+
+        //i, j分别为两部分的第一个元素的下标
+        int i = lo;
+        int j = mid + 1;
+        //归并
+        //先找到lo所在的结点
+        Node current = first;
+        int index = 0;
+
+        while (index++ != lo) {
+            current = current.next;
+        }
+
+        //前面index++, 这里一定要记得减回去
+        index--;
+
+        while (index <= hi) {
+            if (i > mid)
+                current.item = (Item)aux[j++];
+            else if (j > hi)
+                current.item = (Item)aux[i++];
+            else if (comp.compare(aux[j], aux[i]) < 0)
+                current.item = (Item)aux[j++];
+            else
+                current.item = (Item)aux[i++];
+
+            current = current.next;
+            index++;
+        }
+    }
+
+
+    /**
+     * 检查offset是否合法
+     * @param offset
+     *           要检查的offset
+     * @throws IndexOutOfBoundsException 如果offset不存在就抛出异常
+     */
+    private void outOfBoundsCheck(int offset) throws IndexOutOfBoundsException {
+        if ( offset < 0 || offset >= getSize() )
+            throw new IndexOutOfBoundsException("序号" + offset
+                    + "在本List中不存在, 请输入0 ~ " + getSize() + "的数");
+    }
+
+    /**************************************
+     * 我的一些方法和client测试方法         *
+     **************************************/
+
+    /**
+     * 那个控制台输出的语句太长啦, 搞个方便一点的.
+     * @param obj 要输出的String.
+     * @throws IllegalArgumentException 参数不能为空
+     */
+    private static void o(Object obj) throws IllegalArgumentException {
+        if (obj == null)
+            throw new IllegalArgumentException("参数不能为空!");
+
+        System.out.println(obj);
+    }
+
+    /**
+     * 那个控制台输出的语句太长啦, 搞个方便一点的.
+     * 重载的一个版本, 不接受任何参数, 就是为了输出一个回车.
+     */
+    private static void o() {
+        System.out.println();
+    }
+
+
+
+    /**
+     * Test Client.
+     * @param args
+     *          command-line arguments.
+     */
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) {
+
+        DoubleLinkedList<Integer> dllist = new DoubleLinkedList<>();
+
+        //一系列操作, 操作完的结果应该是:
+        dllist.addFirst(5);
+        dllist.addFirst(6);
+        dllist.addLast(2);
+        dllist.addLast(7);
+        dllist.add(3, 6);
+        dllist.add(0, 8);
+        dllist.add(dllist.getSize() - 1, 9);
+
+
+        o("getFirst(): " + dllist.getFirst() + ", getLast(): " + dllist.getLast()
+                + ", get(2): " + dllist.get(2));
+
+        //Pop Test
+        dllist.popFirst();
+        dllist.popLast();
+        dllist.pop(2);
+
+        //Test Modify
+        dllist.modify(1, 7);
+
+        //Test toString and Iterator, 结果应该是8, 7, 7, 6
+        o(dllist);
+
+        //array to Linked List
+        //Primitive type array
+        int[] array = {1, 3, 5, 7};
+        o(new DoubleLinkedList<Integer>(array));
+
+        //test toArray
+        o("test toArray()");
+        for (Integer i : new DoubleLinkedList<Integer>(array).toArray())
+            System.out.print(" " + i);
+        o();
+
+        //Reference type array
+        Integer[] integerArray = {1, 3, 5, 7};
+        //为了抑制java对于数组造成的潜在的varargs参数混淆的警告, 先强制转化为Object而不是Object[]
+        o(new DoubleLinkedList((Object)integerArray));
+
+        //varargs test
+        o(new DoubleLinkedList(1, 5, 9, 11));
+    }
+}
+
+/**
+ * (Weighted Directed) Graph/Network implemented by AdjList (LinkedList)
+ *
+ * @param <VerT>
+ *              vertex element type
+ * @param <EdgeT>
+ *              edge/arc weight type, bool indicates DG/UDG
+ */
+class Graph<VerT, EdgeT> {
+    /**
+     * DG: Directed Graph
+     * DN: Directed Network
+     * UDG: Undirected Graph
+     * UDN: Undirected Network
+     */
+    public enum GraphType {
+        DG, DN, UDG, UDN
+    }
+
+    // the list of vertex nodes, Second element in inner Pair indicates the verNode index that the Edge point to.
+    private DoubleLinkedList<Pair<Bag<Pair<EdgeT, Integer>>, VerT>> adjLists;
+    // size of edges
+    private int edgeNum;
+    // size of vertex
+    private int verNum;
+    // type of graph
+    private GraphType type;
+
+    /**
+     * default constructor
+     * @param type
+     *          the type of graph
+     */
+    public Graph(Graph.GraphType type) {
+        this.type = type;
+        // verNum = 0;
+        // edgeNum = 0;
+        this.adjLists = new DoubleLinkedList<>();
+    }
+
+    /**
+     * A simple Graph implemented by LinkedList
+     * @param type
+     *              DG, UDG(EdgeT == bool), DN, UDN
+     * @param vers
+     *              array of vertex
+     * @param edgeMatrix
+     *              Matrix of edge, the subscript of Matrix is the index of vertex, if there is DG/UDG then EdgeT is
+     *              bool
+     * @param disconnectedNotation
+     *              notation indicates no Edge in Matrix, if there is DG/UDG, then disconnectedNotation can be false or
+     *              true, its value is useless.
+     */
+    @SuppressWarnings("unchecked")
+    public Graph(Graph.GraphType type, VerT[] vers, EdgeT[][] edgeMatrix, final EdgeT disconnectedNotation) {
+        this.adjLists = new DoubleLinkedList<>();
+
+        for (int i = 0; i < verNum; i++) {
+            Pair<Bag<Pair<EdgeT, Integer>>, VerT> ver = new Pair<>(new Bag<>(), vers[i]);
+
+            for (int j = 0; j < verNum; j++) {
+                if (edgeMatrix[i][j] != disconnectedNotation) {
+                    ver.first.add(new Pair<>(edgeMatrix[i][j], j));
+                }
+            }
+
+            adjLists.addLast(ver);
+        }
+
+        this.type = type;
+        this.verNum = vers.length;
+        this.edgeNum = edgeMatrix.length;
+    }
+
+    /**
+     * check index of vertex
+     * @param indexOfVer
+     *          index of vertex
+     * @return
+     *          false if index of ver not beyond the valid range (i.e., [0, verNum))
+     */
+    private boolean isVerIndexInvalid(int indexOfVer) {
+        return indexOfVer < 0 && indexOfVer >= verNum;
+    }
+
+    /**
+     * add an edge/arc to the graph
+     * if there is Undirected Graph or Undirected Network, the order of v and w is not affect.
+     * @param v
+     *          vertex index the edge point from
+     * @param w
+     *          vertex index the edge point to
+     * @param weight
+     *          the weight of edge, if there is Grapg, the weight is useless, so it can be neither true or false
+     * @return
+     *          this instance
+     */
+    public Graph<VerT, EdgeT> addEdge(int v, int w, EdgeT weight) throws InvalidParameterException {
+        // check vertex index
+        if (isVerIndexInvalid(v) || isVerIndexInvalid(w)) {
+            throw new InvalidParameterException("parameter v or w is invalid!");
+        }
+
+        adjLists.get(v).first.add(new Pair<>(weight, w));
+        edgeNum++;
+
+        return this;
+    }
+
+    /**
+     * add a vertex to the graph (add to the end of adjLists)
+     * @param value
+     *          the value of vertex
+     * @return
+     *          this instance
+     */
+    public Graph<VerT, EdgeT> addVer(VerT value) {
+        adjLists.addLast(new Pair<>(new Bag<>(), value));
+        verNum++;
+
+        return this;
+    }
+
+    /**
+     * add a vertex to the graph(add to the first of adjLists)
+     * @param value
+     *          the value of vertex
+     * @return
+     *          this instance
+     */
+    public Graph<VerT, EdgeT> addVerFirst(VerT value) {
+        adjLists.addFirst(new Pair<>(new Bag<>(), value));
+        verNum++;
+
+        return this;
+    }
+
+    /**
+     * add edge to the vertex
+     * @param v
+     *      the index of vertex
+     * @param edge
+     *      edge
+     * @return
+     *      this instance
+     */
+    public Graph<VerT, EdgeT> addEdge2Ver(int v, Pair<EdgeT, Integer> edge) {
+        edgeNum++;
+        getAdj(v).add(edge);
+
+        return this;
+    }
+
+    /**
+     * get the adjacency list of the edges point from vertex v
+     * @param v
+     *          the vertex index
+     * @return
+     *          the iterable list of the edges
+     */
+    public Bag<Pair<EdgeT, Integer>> getAdj(int v) {
+        // check v
+        if (isVerIndexInvalid(v)) {
+            throw new InvalidParameterException("parameter v is invalid!");
+        }
+
+        return adjLists.get(v).first;
+    }
+
+    /**
+     * concatenate this graph's adjLists with another's
+     * @param another
+     *          another Graph
+     * @return
+     *          this instance
+     */
+    public Graph<VerT, EdgeT> concate(Graph<VerT, EdgeT> another) throws InvalidTypeException {
+        if (another.type != this.type) {
+            throw new InvalidTypeException("another has different type with the Graph(" + getTypeString() + ")");
+        }
+
+        adjLists.concate(another.getAdjLists());
+        verNum += another.verNum;
+        edgeNum += another.edgeNum;
+
+        return this;
+    }
+
+    /**
+     * get the adjLists, **be careful to use it!**
+     * @return
+     *      the adjLists
+     */
+    DoubleLinkedList<Pair<Bag<Pair<EdgeT, Integer>>, VerT>> getAdjLists() {
+        return adjLists;
+    }
+
+    /**
+     * get edges count
+     * @return
+     *          count of edges
+     */
+    public int getEdgeNum() {
+        return edgeNum;
+    }
+
+    /**
+     * get vertex count
+     * @return
+     *          count of vertex
+     */
+    public int getVerNum() {
+        return verNum;
+    }
+
+    /**
+     * get graph type
+     * @return
+     *          the type of graph, UDG/DG/UDN/DN
+     */
+    public GraphType getType() {
+        return type;
+    }
+
+    /**
+     * return the string indicates the type of graph
+     * @return
+     *      the type information string
+     */
+    public String getTypeString() {
+        switch(type) {
+            case DG: return "DG";
+            case DN: return "DN";
+            case UDG: return "UDG";
+            case UDN: return "UDN";
+            default:
+                return "Error!";
+        }
+    }
+}
+
+/**
+ * class comment : Generic Type Stack(LIFO)
+ * 使用(可变长度resizing-capacity)数组实现.
+ * 但是更换数组长度的时候会产生时间消耗(不过至少比fixed-capacity array好一点)
+ * 一个更好的实现就是LinkedList(SLL/DLL).
+ * @author DCMMC
+ * Created by DCMMC on 2017/7/24.
+ */
+class Stack<Item> implements Iterable<Item> {
+    /**************************************
+     * Fields                             *
+     **************************************/
+    //当前Stack中的元素个数
+    private int size = 0;
+    //默认最大容量
+    private int MAXSIZE = 1000;
+    /* reseizing-capacity stack using array implement */
+    private Item[] elements;
+
+    /*
+     **************************************
+     * Constructors                       *
+     **************************************/
+    /**
+     * 默认构造器
+     */
+    @SuppressWarnings("unchecked")
+    Stack() {
+        elements = (Item[]) new Object[MAXSIZE];
+    }
+
+    /**
+     * 重载的构造器, 指定Stack容量
+     * @param capacity
+     *			Stack的容量
+     */
+    @SuppressWarnings("unchecked")
+    Stack(int capacity) {
+        elements = (Item[]) new Object[capacity];
+        this.MAXSIZE = capacity;
+    }
+
+    /*
+     **************************************
+     * Inner Class                        *
+     **************************************/
+    /**
+     * 成员内部类
+     * 用于遍历这个Stack
+     */
+    private class ReverseArrayIterator implements Iterator<Item> {
+        //用于遍历的时候存储当前遍历的序列, 还没有遍历过的时候默认值为-1
+        private int iterateoffset = -1;
+
+        /**
+         * 返回当前遍历是否还有下一个元素
+         * @return Stack中上个被遍历的元素下面还有元素就返回true
+         */
+        @Override
+        public boolean hasNext() {
+            //第一次调用, 把iterateOffset设为当前Stack中的元素数量
+            if (iterateoffset == -1) {
+                iterateoffset = size;
+            }
+
+            return iterateoffset > 0;
+        }
+
+        /**
+         * 遍历iterateOffset下面的所有元素
+         * @return 下一个元素的值
+         */
+        @Override
+        public Item next() {
+            if (hasNext())
+                return elements[--iterateoffset];
+            else
+                return null;
+        }
+
+    }
+
+    /*
+     **************************************
+     * Methods     		                  *
+     **************************************/
+    /**
+     * 向Stack中添加新的元素
+     * @param item 新元素
+     */
+    public void push(Item item) {
+        //如果Stack小于MAXSIZE * 0.8, 就正常添加, 否则就resize到MAXSIZE * 2.
+        //原书是到了MAXSIZE才加倍到MAXSIZE * 2
+        if(getSize() >= MAXSIZE * 4 / 5)
+            resize(MAXSIZE * 2);
+
+        elements[size++] = item;
+    }
+
+    /**
+     * 从Stack中取出最后一个添加到Stack的元素, 并把这个元素从Stack中删除, 这里会把元素强制向下转型
+     * @return 最后一个添加到Stack的元素
+     */
+    @SuppressWarnings("unchecked")
+    public Item pop() {
+        //如果size等于Stack的1/4就resize到MAXSIZE / 2
+        if (isEmpty())
+            return null;
+        else if (size > 0 && size == MAXSIZE / 4)
+            resize(MAXSIZE / 2);
+
+        Object tmp = elements[size - 1];
+        elements[--size] = null;
+        return (Item)tmp;
+    }
+
+    /**
+     * 从Stack中取出最后一个添加到Stack的元素, 并且不会把这个元素从Stack中删除, 这里会把元素强制向下转型
+     * @return 最后一个添加到Stack的元素
+     */
+    @SuppressWarnings("unchecked")
+    public Item peek() {
+        //如果size等于Stack的1/4就resize到MAXSIZE / 2
+        if (isEmpty())
+            return null;
+        else if (size > 0 && size == MAXSIZE / 4)
+            resize(MAXSIZE / 2);
+
+        return (Item)elements[size - 1];
+    }
+
+    /**
+     * 获得当前Stack存储了多少个元素
+     * @return 当前Stack存储的多少个元素
+     */
+    public int getSize() {
+        return size;
+    }
+
+    /**
+     * 判断Stack是否是空的
+     * @return 判断Stack是否是空的
+     */
+    public boolean isEmpty() {
+        return size == 0;
+    }
+
+    /**
+     * 判断Stack是否已满, resizing-capacity array的实现方案直接都返回true
+     * @return 判断Stack是否已满
+     */
+    public boolean isFull() {
+        //这是原来fixed-capacity array实现的stack的方案
+        //return getSize() >= MAXSIZE;
+
+        //新的resizing-capacity array实现的stack, 直接返回false.
+        return false;
+    }
+
+
+
+    /**
+     * Returns an iterator over elements of type {@code T}.
+     *
+     * @return an Iterator.
+     */
+    public Iterator<Item> iterator() {
+        return this.new ReverseArrayIterator();
+    }
+
+    /**
+     * 更新array的大小, 使用原子操作, 防止在更换的时候, stack出现异常
+     * @param newCapacity 新的array的大小
+     * @return 原来stack的MAXSIZE
+     */
+    @SuppressWarnings("unchecked")
+    private int resize(int newCapacity) {
+        //注意: 这里不会检查size是否大于newCapacity
+        synchronized (elements) {
+            Item[] newElements = (Item[]) new Object[newCapacity];
+            int cnt = 0;
+            for (Item i : elements)
+                newElements[cnt++] = i;
+
+            //把elements交接到新的array对象
+            elements = newElements;
+
+            //更新MAXSIZE大小
+            int oldMAXSIZE = this.MAXSIZE;
+            this.MAXSIZE = newCapacity;
+            return oldMAXSIZE;
+        }
+    }
+
+    /**
+     * Test Client.
+     * @param args
+     *			command-line arguments.
+     */
+    public static void main(String[] args) {
+        //foreach遍历测试
+        System.out.println("foreach遍历测试");
+        Stack<Integer> stack = new Stack<>(4);
+        stack.push(5);
+        stack.push(2);
+        stack.push(1);
+        stack.push(7);
+
+        //遍历
+        for (int i : stack) {
+            System.out.println(i);
+        }
+
+
+        /* Dijkstra双栈算术表达式求值算法 */
+        System.out.println("输入一行算术表达式, 空行回车或者Ctrl+Z结束本程序.");
+
+        Stack<String> ops = new Stack<>();
+        Stack<Double> vals = new Stack<>();
+
+        Scanner sc = new Scanner(System.in);
+
+        while (sc.hasNextLine()) {
+            //nextLine会读取回车, 但是回车的内容不会成为返回的字符串的一部分.
+            String line = sc.nextLine();
+
+            if (line.equals("")) {
+                System.out.println("End of Reading.");
+                return;
+            } else {
+                //从这一行中读取
+                Scanner scInLine = new Scanner(line);
+
+                /* 算术表达式示例: ( 1 + ( ( 2 + 3 ) * ( 4 * 5 ) ) ) */
+                while (scInLine.hasNext()) {
+                    //读取字符串
+                    String str = scInLine.next();
+
+                    switch (str) {
+                        //忽略左括号
+                        case "(" 	:  break;
+                        case "+" 	:
+                        case "-" 	:
+                        case "*" 	:
+                        case "/" 	:
+                        case "sqrt" : ops.push(str);
+                            break;
+                        //如果是右括号的话, 就执行操作
+                        case ")" 	:
+                            String operator = ops.pop();
+                            Double val = vals.pop();
+
+                            //计算并将结果压回Stack
+                            switch (operator) {
+                                case "+" : vals.push(vals.pop() + val);
+                                    break;
+                                case "-" : vals.push(vals.pop() - val);
+                                    break;
+                                case "*" : vals.push(vals.pop() * val);
+                                    break;
+                                case "/" : vals.push(vals.pop() / val);
+                                    break;
+                                case "sqrt" : vals.push(Math.sqrt(val));
+                                    break;
+                            }
+                            break;
+                        //如果既不是运算符也不是括号, 就是操作数了
+                        default : vals.push(Double.parseDouble(str));
+                    }
+
+
+                }
+
+                //输出结果
+                System.out.println("上述算术表达式的值为" + vals.pop());
+                System.out.println("输入一行算术表达式, 空行回车或者Ctrl+Z结束本程序.");
+            }
+        }
+
+    }
+}
+
+/**
+ * Regex expression to NFA, NFA to DFA and minimize DFA
+ * @since 1.8
+ * @author DCMMC
+ */
+public class Reg2Automata {
+    /**
+     * use epsilon expression to concatenate two NFAs
+     *
+     * @param NFA1
+     *          left operand, @notEmpty
+     * @param NFA2
+     *          right operand, @notEmpty
+     * @param ptStateCnt
+     *          pointer of state count
+     * @return
+     *          NFA = NFA1 | NFA2, and NFA use the object of NFA1, NFA2 now is useless.
+     */
+    private static Graph<Integer, String> OpOr(Graph<Integer, String> NFA2, Graph<Integer, String> NFA1,
+                                               Pointer<Integer> ptStateCnt) throws Exception {
+        // check
+        if (NFA1.getVerNum() < 2 || NFA2.getVerNum() < 2) {
+            throw new Exception("NFA1 and NFA2's vertex number must large than or equal to 2!");
+        }
+
+        NFA1.addVerFirst(ptStateCnt.item++);
+        NFA2.addVer(ptStateCnt.item++);
+        try {
+            // null indicates epsilon expression
+            NFA1.addEdge2Ver(0, new Pair<>(null, 1));
+            int oldLastIndex = NFA1.getVerNum() - 1;
+            NFA1.addEdge2Ver(0, new Pair<>(null, oldLastIndex + 1))
+                    .concate(NFA2)
+                    .addEdge2Ver(oldLastIndex, new Pair<>(null, NFA1.getVerNum() - 1))
+                    .addEdge2Ver(NFA1.getVerNum() - 2, new Pair<>(null, NFA1.getVerNum() - 1));
+        } catch (InvalidTypeException ite) {
+            throw new RuntimeException("incompatible NFA2 graph type!");
+        }
+
+        return NFA1;
+    }
+
+    /**
+     * concatenate two NFAs
+     * @param NFA1
+     *      left operand, @notEmpty
+     * @param NFA2
+     *      right operand, @notEmpty
+     * @return
+     *      NFA = (NFA1)(NFA2), and NFA use the object of NFA1, NFA2 now is useless.
+     */
+    private static Graph<Integer, String> OpAnd(Graph<Integer, String> NFA2, Graph<Integer, String> NFA1) throws Exception {
+        // check
+        if (NFA1.getVerNum() < 2 || NFA2.getVerNum() < 2) {
+            throw new Exception("NFA1 and NFA2's vertex number must large than or equal to 2!");
+        }
+
+        try {
+            int oldLastIndex = NFA1.getVerNum() - 1;
+            // null indicate epsilon expression
+            // according to McNaughton-Yamada-Thompson Algorithms, there is should not use epsilon expression to
+            // concatenate two NFAs, just let last vertex of NFA1 combine with the first vertex of NFA2
+            // but remove operation will influence stateCount and I don't want to handle it.
+            // so there is a bit inconsistent with McNaughton-Yamada-Thompson Algorithms
+            NFA1.addEdge2Ver(oldLastIndex, new Pair<>(null, oldLastIndex + 1))
+                    .concate(NFA2);
+        } catch (InvalidTypeException ite) {
+            throw new RuntimeException("incompatible NFA2 graph type!");
+        }
+
+        return NFA1;
+    }
+
+    /**
+     * closure operation of a NFA
+     * @param NFA
+     *      NFA to be operated.
+     * @return
+     *      the new NFA
+     * @param ptStateCnt
+     *          pointer of state count
+     * @throws Exception
+     *      if NFA's vertex number less than 2
+     */
+    private static Graph<Integer, String> OpClosure(Graph<Integer, String> NFA, Pointer<Integer> ptStateCnt) throws Exception {
+        // check
+        if (NFA.getVerNum() < 2) {
+            throw new Exception("NFA's vertex number must large than or equal to 2!");
+        }
+
+        // null indicates epsilon expression
+        NFA.addVerFirst(ptStateCnt.item++)
+                .addVer(ptStateCnt.item++)
+                .addEdge2Ver(0, new Pair<>(null, 1))
+                .addEdge2Ver(0, new Pair<>(null, NFA.getVerNum() - 1))
+                .addEdge2Ver(NFA.getVerNum() - 2, new Pair<>(null, 1))
+                .addEdge2Ver(NFA.getVerNum() - 2, new Pair<>(null, NFA.getVerNum() - 1));
+
+        return NFA;
+    }
+
+
+    /**
+     * Basic Rule of McNaughton-Yamada-Thompson Algorithms
+     * @param ptStateCnt
+     *          pointer of state count
+     * @param operands
+     *          Stack of operands
+     */
+    private static void basicRule(Pointer<Integer> ptStateCnt, Stack<Graph<Integer, String>> operands,
+                                  String str) {
+        // debug
+        // System.out.println(str);
+
+        Graph<Integer, String> NFA = new Graph<>(Graph.GraphType.DN);
+        NFA.addVer(ptStateCnt.item++)
+                .addVer(ptStateCnt.item++)
+                .addEdge2Ver(0, new Pair<>(str, ptStateCnt.item - 1));
+        operands.push(NFA);
+    }
+
+    /**
+     * Regex expression to NFA using McNaughton-Yamada-Thompson Algorithms (i.e. Thompson 法)
+     *
+     * Basic regex expression, only have concatenation, or, closure operations and parentheses.
+     *
+     * operation priorities: parentheses > * > | == concatenation
+     *
+     * @param regExp
+     *          regex expression
+     * @return
+     *          the e-NFA constructed by regExp using McNaughton-Yamada-Thompson Algorithms, the graph only has one
+     *          start state and one final state.
+     */
+    private static Graph<Integer, String> reg2NFA(String regExp) {
+        // *basic rule* for handling subexpressions with no operators: two situation, state i using epsilon-expression
+        // to state f, and state i using subexpression a to state f.
+        //
+        // *induction rule* for constructing large NFAs from many small NFAs connected by operators.
+        // to avoid conflicts between a NFA to another, we should use epsilon expression carefully in the junction(交界处)
+        // of two sub NFAs using the rules McNaughton-Yamada-Thompson uses.
+
+        // Dijkstra's two stack expression evaluation
+        Stack<Character> ops = new Stack<>();
+        Stack<Graph<Integer, String>> operands = new Stack<>();
+
+        final char or = '|';
+        final char closure = '*';
+        final char openingBracket = '(';
+        final char closingBracket = ')';
+        // alphabet or vocabulary
+        final String alphabetReg = ".";
+
+        // count the number of states in the NFA
+        Integer stateCount = 0;
+        Pointer<Integer> ptStateCnt = new Pointer<>(stateCount);
+        // str without operator lower index
+        int lower = -1;
+
+        try {
+            for (int i = 0; i < regExp.length(); i++) {
+                char c = regExp.charAt(i);
+                if (c == or || c == openingBracket) {
+                    ops.push(c);
+                    if (lower != -1) {
+                        basicRule(ptStateCnt, operands, regExp.substring(lower, i));
+                        lower = -1;
+                    }
+
+                } else if (c == closure) {
+                    if (lower != -1) {
+                        basicRule(ptStateCnt, operands, regExp.substring(lower, i));
+                        lower = -1;
+                    }
+
+                    OpClosure(operands.peek(), ptStateCnt);
+                } else if (c == closingBracket) {
+                    if (lower != -1) {
+                        basicRule(ptStateCnt, operands, regExp.substring(lower, i));
+                        lower = -1;
+                    }
+
+                    // may be multiple '|'
+                    while (!ops.isEmpty() && ops.peek() == or) {
+                        ops.pop();
+                        operands.push(OpOr(operands.pop(), operands.pop(), ptStateCnt));
+                    }
+                    // pop '('
+                    ops.pop();
+                } else {
+                    if (("" + c).matches(alphabetReg)) {
+                        if (lower == -1)
+                            lower = i;
+                    } else {
+                        System.err.println("There are some characters invalid(i.e., not in alphabet)");
+                    }
+                }
+            }
+            // if there are some cases like (another_subexpression)|(other_subexpression)
+            if (ops.getSize() > 0) {
+                // may be multiple '|'
+                while (!ops.isEmpty() && ops.peek() == or) {
+                    ops.pop();
+                    operands.push(OpOr(operands.pop(), operands.pop(), ptStateCnt));
+                }
+            }
+            // if there is only a string like "abb"
+            if (lower != -1) {
+                basicRule(ptStateCnt, operands, regExp.substring(lower, regExp.length()));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return operands.pop();
+    }
+
+    /**
+     * draw the NFA using graphviz
+     * @param NFA
+     *          NFA graph that need to draw
+     */
+    private static void graphvizDraw(Graph<Integer, String> NFA) {
+        // **Be careful: all elements(like Graph and Node) of graphviz is immutable!!**
+        guru.nidi.graphviz.model.Graph g = graph("NFA").directed();
+
+        // start state
+        Node[] nodes = new Node[NFA.getVerNum() + 1];
+
+        nodes[0] = node("start").with(Shape.NONE);
+        int i = 1;
+        for (Pair<Bag<Pair<String, Integer>>, Integer> nodeAdjList : NFA.getAdjLists()) {
+            nodes[i++] = node(nodeAdjList.second.toString());
+        }
+        // start state
+        nodes[0] = nodes[0].link(to(nodes[1]));
+        // finish state
+        nodes[nodes.length - 1] = nodes[nodes.length - 1].with(Shape.DOUBLE_CIRCLE, Color.RED);
+
+        i = 1;
+        for (Pair<Bag<Pair<String, Integer>>, Integer> nodeAdjList : NFA.getAdjLists()) {
+            Link[] links = new Link[nodeAdjList.first.getSize()];
+            int j = 0;
+            for (Pair<String, Integer> edge : nodeAdjList.first) {
+                if (edge.first == null) {
+                    links[j++] = to(nodes[edge.second + 1]).with(Label.of("e"), Style.DASHED);
+                } else {
+                    links[j++] = to(nodes[edge.second + 1]).with(Label.of(edge.first));
+                }
+            }
+            nodes[i] =  nodes[i].link(links);
+            i++;
+        }
+        g = g.with(nodes).graphAttr().with(RankDir.TOP_TO_BOTTOM);
+
+        URL path = Reg2Automata.class.getClassLoader().getResource(".");
+        try {
+            if (path != null) {
+                Files.createDirectories(Paths.get(path.getPath(), "graphs"));
+                System.out.println(Paths.get(path.getPath(), "graphs"));
+                Graphviz.fromGraph(g).width(1000).render(Format.PNG).toFile(new File("graphs/NFA.png"));
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        graphvizDraw(reg2NFA("abb*"));
+        // graphvizDraw(reg2NFA("(abc|bd)|e*|(a*bb*|(kk|d))*"));
+        // reg2NFA("(a|b)*a(a|b)(aa|bb)");
+//        Node
+//                init = node("init"),
+//                execute = node("execute"),
+//                compare = node("compare").with(Shape.RECTANGLE, Style.FILLED, Color.hsv(.7, .3, 1.0)),
+//                mkString = node("mkString").with(Label.of("make a\nstring")),
+//                printf = node("printf");
+//
+//        guru.nidi.graphviz.model.Graph g = graph("example2").directed().with(
+//                node("main").with(Shape.RECTANGLE).link(
+//                        to(node("parse").link(execute)).with("weight", 8),
+//                        to(init).with(Style.DOTTED),
+//                        node("cleanup"),
+//                        to(printf).with(Style.BOLD, Label.of("100 times"), Color.RED)),
+//                execute.link(
+//                        graph().with(mkString, printf),
+//                        to(compare).with(Color.RED)),
+//                init.link(mkString));
+//
+//        try {
+//            Graphviz.fromGraph(g).width(900).render(Format.PNG).toFile(new File("example/ex2.png"));
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+    }
+}///~
