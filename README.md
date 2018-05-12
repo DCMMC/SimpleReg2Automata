@@ -16,6 +16,14 @@ A simple GUI program that can parse regex expression String (with only three bas
 
 ### Screenshots
 
+![1](./screenshots/1.png)
+
+![2](./screenshots/2.png)
+
+![3](./screenshots/3.png)
+
+![4](./screenshots/4.png)
+
 ### Usage
 
 This project is constructor using Gradle and Java10.
@@ -35,6 +43,10 @@ $ ./gradlew idea
 
 > My dev environment is ArchLinux(AMD64) and Oracle JDK10, so it may has some inconsistents in your environments.
 > If you have trouble with it, please writer a issues to me :)
+
+### TODOs
+
+* 带鼠标事件的  JSVGCanvas
 
 ### Acknowledgments
 
