@@ -12,8 +12,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.event.ActionEvent;
@@ -22,12 +20,53 @@ import org.apache.batik.swing.JSVGCanvas;
 import org.apache.batik.swing.JSVGScrollPane;
 
 import javax.swing.*;
+import java.awt.event.*;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Scanner;
 
 import static tk.dcmmc.Reg2Automata.*;
+
+/**
+ * TODO 带鼠标事件的 JSVGCanvas
+ */
+class JSVGCanvasMouse extends JSVGCanvas implements MouseListener, MouseWheelListener {
+    /**
+     * 滚轮事件
+     * @param e
+     */
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
+    }
+}
 
 /**
  * Reg2Automata GUI application
@@ -84,6 +123,59 @@ public class Reg2AutomataGUI extends Application {
     }
 
     /**
+     * 查看 SVG 文件
+     * shift + 鼠标右键 + 滚轮是放大缩小
+     *
+     * "Shift+Mouse Left\tpan\n"+
+     * "Shift+Mouse Right\tzoom in/out (drag)\n"+
+     * "Ctrl+Mouse Left\trectangle zoom\n"+
+     * "Ctrl+Mouse Right\trotate [disabled!]\n"+
+     * "Ctrl+I\tzoom in\n"+
+     * "Ctrl+O\tzoom out\n"
+     * @param file
+     *      SVG file
+     * @param svgPane
+     *      Stack panel
+     * @param scene
+     *      scene
+     */
+    private void displaySVG(File file, StackPane svgPane, Scene scene) {
+        try {
+            Scanner sc = new Scanner(file);
+            String svg = sc.useDelimiter("\\Z").next();
+            svg = svg.replaceAll("stroke=\"transparent\"", "");
+            // svg = svg.replaceAll("font-family=\"Times,serif\"", "font-family=\"Arial\"");
+            try (PrintWriter pw = new PrintWriter(file)) {
+                pw.print(svg);
+            }
+
+            SwingNode node = new SwingNode();
+//                SVGPanel pane = new SVGPanel();
+//                pane.setAntiAlias(true);
+//                pane.setAutosize(SVGPanel.AUTOSIZE_NONE);
+//                pane.setSvgURI(file.toURI());
+
+            JSVGCanvas canvas = new JSVGCanvas();
+            canvas.setURI(file.toURI().toString());
+            JSVGScrollPane pane = new JSVGScrollPane(canvas);
+
+            SwingUtilities.invokeLater(() -> node.setContent(pane));
+
+            GesturePane gesturePane = new GesturePane(node);
+
+            svgPane.getChildren().add(gesturePane);
+
+            Stage stage = new Stage();
+            stage.setScene(scene);
+            stage.setAlwaysOnTop(true);
+            stage.show();
+        } catch (FileNotFoundException fe) {
+            fe.printStackTrace();
+            throw new RuntimeException();
+        }
+    }
+
+    /**
      * show the result svg
      * @param event
      *      click event
@@ -110,34 +202,7 @@ public class Reg2AutomataGUI extends Application {
                         + File.separator
                         + "NFA.svg");
 
-                Scanner sc = new Scanner(file);
-                String svg = sc.useDelimiter("\\Z").next();
-                svg = svg.replaceAll("stroke=\"transparent\"", "");
-                // svg = svg.replaceAll("font-family=\"Times,serif\"", "font-family=\"Arial\"");
-                try (PrintWriter pw = new PrintWriter(file)) {
-                    pw.print(svg);
-                }
-
-                SwingNode node = new SwingNode();
-//                SVGPanel pane = new SVGPanel();
-//                pane.setAntiAlias(true);
-//                pane.setAutosize(SVGPanel.AUTOSIZE_NONE);
-//                pane.setSvgURI(file.toURI());
-
-                JSVGCanvas canvas = new JSVGCanvas();
-                canvas.setURI(file.toURI().toString());
-                JSVGScrollPane pane = new JSVGScrollPane(canvas);
-
-                SwingUtilities.invokeLater(() -> node.setContent(pane));
-
-                GesturePane gesturePane = new GesturePane(node);
-
-                svgPane.getChildren().add(gesturePane);
-
-                Stage stage = new Stage();
-                stage.setScene(scene);
-                stage.setAlwaysOnTop(true);
-                stage.show();
+                displaySVG(file, svgPane, scene);
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
@@ -166,34 +231,7 @@ public class Reg2AutomataGUI extends Application {
                         + File.separator
                         + "DFA.svg");
 
-                Scanner sc = new Scanner(file);
-                String svg = sc.useDelimiter("\\Z").next();
-                svg = svg.replaceAll("stroke=\"transparent\"", "");
-                // svg = svg.replaceAll("font-family=\"Times,serif\"", "font-family=\"Arial\"");
-                try (PrintWriter pw = new PrintWriter(file)) {
-                    pw.print(svg);
-                }
-
-//                ImageView view = new ImageView(new Image(file.toURI().toURL().toString()));
-//
-//                GesturePane pane = new GesturePane(view);
-
-                SwingNode node = new SwingNode();
-
-                JSVGCanvas canvas = new JSVGCanvas();
-                canvas.setURI(file.toURI().toString());
-                JSVGScrollPane pane = new JSVGScrollPane(canvas);
-
-                SwingUtilities.invokeLater(() -> node.setContent(pane));
-
-                GesturePane gesturePane = new GesturePane(node);
-
-                svgPane.getChildren().add(gesturePane);
-
-                Stage stage = new Stage();
-                stage.setScene(scene);
-                stage.setAlwaysOnTop(true);
-                stage.show();
+                displaySVG(file, svgPane, scene);
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
@@ -226,35 +264,7 @@ public class Reg2AutomataGUI extends Application {
                         + File.separator
                         + "minimized-DFA.svg");
 
-                Scanner sc = new Scanner(file);
-                String svg = sc.useDelimiter("\\Z").next();
-                svg = svg.replaceAll("stroke=\"transparent\"", "");
-                // svg = svg.replaceAll("font-family=\"Times,serif\"", "font-family=\"Arial\"");
-                try (PrintWriter pw = new PrintWriter(file)) {
-                    pw.print(svg);
-                }
-
-//
-//                ImageView view = new ImageView(new Image(file.toURI().toURL().toString()));
-//
-//                GesturePane pane = new GesturePane(view);
-
-                SwingNode node = new SwingNode();
-
-                JSVGCanvas canvas = new JSVGCanvas();
-                canvas.setURI(file.toURI().toString());
-                JSVGScrollPane pane = new JSVGScrollPane(canvas);
-
-                SwingUtilities.invokeLater(() -> node.setContent(pane));
-
-                GesturePane gesturePane = new GesturePane(node);
-
-                svgPane.getChildren().add(gesturePane);
-
-                Stage stage = new Stage();
-                stage.setScene(scene);
-                stage.setAlwaysOnTop(true);
-                stage.show();
+                displaySVG(file, svgPane, scene);
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
