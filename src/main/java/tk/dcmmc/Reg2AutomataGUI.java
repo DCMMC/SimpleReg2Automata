@@ -104,6 +104,7 @@ public class Reg2AutomataGUI extends Application {
             regStr = (TextField) scene.lookup("#regStr");
             regStr.setOnAction((e) -> root.requestFocus());
 
+            primaryStage.setAlwaysOnTop(true);
             primaryStage.show();
         } catch (IOException ioe) {
             ioe.printStackTrace();

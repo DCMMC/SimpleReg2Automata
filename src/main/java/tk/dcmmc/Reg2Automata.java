@@ -1,6 +1,5 @@
 package tk.dcmmc;
 
-import com.sun.jdi.InvalidTypeException;
 import guru.nidi.graphviz.attribute.*;
 import guru.nidi.graphviz.engine.Format;
 import guru.nidi.graphviz.engine.Graphviz;
@@ -31,6 +30,16 @@ class Pointer<T> {
         item = t;
     }
 }
+
+/**
+ * Invalid Type Exception
+ */
+class InvalidTypeException extends Exception {
+    public InvalidTypeException(String message) {
+    	super(message);
+    }
+}
+
 
 /**
  * Pair
@@ -2562,7 +2571,9 @@ public class Reg2Automata {
         URL path = Reg2Automata.class.getClassLoader().getResource(".");
         try {
             if (path != null) {
-                Files.createDirectories(Paths.get(path.getPath(), "graphs"));
+                // if use Windows, path.getPath will start with '/' incorrectly.
+                Files.createDirectories(Paths.get(path.getPath().charAt(0) == '/' ?
+                        path.getPath().substring(1) : path.getPath(), "graphs"));
                 System.out.println("Output file path: " +
                         new File("graphs" + File.separator
                         + fileName).getAbsolutePath());
