@@ -46,7 +46,7 @@ $ ./gradlew idea
 
 ### TODOs
 
-* 带鼠标事件的  JSVGCanvas
+* JSVGCanvas with MouseEvent and MouseWheelEvent
 
 ### Acknowledgments
 
@@ -54,6 +54,8 @@ $ ./gradlew idea
 * JavaFX
 * JFonix
 * graphviz
+* Apache Batik
+* Gradle
 * gesturefx
 * Gragon Book 2nd
 * Jetbrain 
