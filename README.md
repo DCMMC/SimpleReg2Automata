@@ -40,6 +40,10 @@ $ ./gradlew idea
 ```
 > 1.10 >= JDK Version >= 1.8
 
+放大缩小 svg 视图: Shift+鼠标右键+移动鼠标
+
+移动 svg 视图: Shift+鼠标左键+移动鼠标
+
 
 > My dev environment is ArchLinux(AMD64) and Oracle JDK10, so it may has some inconsistents in your environments.
 > If you have trouble with it, please writer a issues to me :)
@@ -58,4 +62,5 @@ $ ./gradlew idea
 * Gradle
 * gesturefx
 * Gragon Book 2nd
-* Jetbrain 
+* Jetbrain
+* Git
