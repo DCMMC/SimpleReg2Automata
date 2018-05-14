@@ -148,8 +148,10 @@ public class Reg2AutomataGUI extends Application {
      *      Stack panel
      * @param scene
      *      scene
+     * @param title
+     * 		title of the stage window
      */
-    private void displaySVG(File file, StackPane svgPane, Scene scene) {
+    private void displaySVG(File file, StackPane svgPane, Scene scene, String title) {
         try {
             Scanner sc = new Scanner(file);
             String svg = sc.useDelimiter("\\Z").next();
@@ -176,6 +178,7 @@ public class Reg2AutomataGUI extends Application {
             svgPane.getChildren().add(gesturePane);
 
             Stage stage = new Stage();
+            stage.setTitle(title);
             stage.setScene(scene);
             stage.setAlwaysOnTop(true);
             stage.show();
@@ -186,10 +189,10 @@ public class Reg2AutomataGUI extends Application {
     }
 
     /**
-     * show the result svg
-     * @param event
-     *      click event
-     */
+    * open a new window to show the NFA graph
+    * @param event
+    * 		event
+    */
     @FXML
     public void showNFA(ActionEvent event) {
         try {
@@ -212,13 +215,18 @@ public class Reg2AutomataGUI extends Application {
                         + File.separator
                         + "NFA.svg");
 
-                displaySVG(file, svgPane, scene);
+                displaySVG(file, svgPane, scene, "NFA");
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
     }
 
+   	/**
+    * open a new window to show the DFA graph
+    * @param event
+    * 		event
+    */
     @FXML
     public void showDFA(ActionEvent event) {
         try {
@@ -241,13 +249,18 @@ public class Reg2AutomataGUI extends Application {
                         + File.separator
                         + "DFA.svg");
 
-                displaySVG(file, svgPane, scene);
+                displaySVG(file, svgPane, scene, "DFA");
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
     }
 
+    /**
+    * open a new window to show the minimized-DFA graph
+    * @param event
+    * 		event
+    */
     @FXML
     public void showMiniDFA(ActionEvent event) {
         try {
@@ -274,7 +287,7 @@ public class Reg2AutomataGUI extends Application {
                         + File.separator
                         + "minimized-DFA.svg");
 
-                displaySVG(file, svgPane, scene);
+                displaySVG(file, svgPane, scene, "minimized-DFA");
             }
         } catch (IOException ioe) {
             ioe.printStackTrace();

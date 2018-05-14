@@ -14,6 +14,7 @@ import java.security.InvalidParameterException;
 import java.util.*;
 import java.lang.reflect.Array;
 import java.util.stream.IntStream;
+import com.sun.istack.internal.NotNull;
 
 import static guru.nidi.graphviz.model.Factory.graph;
 import static guru.nidi.graphviz.model.Factory.node;
@@ -35,7 +36,7 @@ class Pointer<T> {
  * Invalid Type Exception
  */
 class InvalidTypeException extends Exception {
-    public InvalidTypeException(String message) {
+    InvalidTypeException(String message) {
     	super(message);
     }
 }
@@ -302,6 +303,7 @@ class Bag<Item> implements Iterable<Item> {
      *
      * @return an Iterator.
      */
+    @NotNull
     public Iterator<Item> iterator() {
         return this.new BagIterator();
     }
@@ -1801,8 +1803,6 @@ class Stack<Item> implements Iterable<Item> {
                         //如果既不是运算符也不是括号, 就是操作数了
                         default : vals.push(Double.parseDouble(str));
                     }
-
-
                 }
 
                 //输出结果
@@ -1833,6 +1833,33 @@ class Stack<Item> implements Iterable<Item> {
  */
 public class Reg2Automata {
     /**
+     * execute different operation for different operators
+     * @param operator
+     *          operator: &, *, |
+     * @param operands
+     *          operands Graph
+     * @param ptStateCnt
+     *          pointer to state count
+     */
+    private static void op(Character operator, Stack<Graph<Integer, String>> operands, Pointer<Integer> ptStateCnt) {
+        try {
+            switch (operator) {
+                case '|':
+                    operands.push(OpOr(operands.pop(), operands.pop(), ptStateCnt));
+                    break;
+                case '&':
+                    operands.push(OpAnd(operands.pop(), operands.pop()));
+                    break;
+                case '*':
+                    operands.push(OpClosure(operands.pop(), ptStateCnt));
+                    break;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * use epsilon expression to concatenate two NFAs
      *
      * @param NFA1
@@ -1844,24 +1871,24 @@ public class Reg2Automata {
      * @return
      *          NFA = NFA1 | NFA2, and NFA use the object of NFA1, NFA2 now is useless.
      */
-    private static Pair<Graph<Integer, String>, Integer> OpOr(Pair<Graph<Integer, String>, Integer> NFA2,
-                                                              Pair<Graph<Integer, String>, Integer> NFA1,
+    private static Graph<Integer, String> OpOr(Graph<Integer, String> NFA2,
+                                                              Graph<Integer, String> NFA1,
                                                Pointer<Integer> ptStateCnt) throws Exception {
         // check
-        if (NFA1.first.getVerNum() < 2 || NFA2.first.getVerNum() < 2) {
+        if (NFA1.getVerNum() < 2 || NFA2.getVerNum() < 2) {
             throw new Exception("NFA1 and NFA2's vertex number must large than or equal to 2!");
         }
 
-        NFA1.first.addVerFirst(ptStateCnt.item++);
-        NFA2.first.addVer(ptStateCnt.item++);
+        NFA1.addVerFirst(ptStateCnt.item++);
+        NFA2.addVer(ptStateCnt.item++);
         try {
             // null indicates epsilon expression
-            int oldLastIndex = NFA1.first.getVerNum() - 1;
-            NFA1.first.concate(NFA2.first)
+            int oldLastIndex = NFA1.getVerNum() - 1;
+            NFA1.concate(NFA2)
                     .addEdge2Ver(0, new Pair<>(null, 1))
                     .addEdge2Ver(0, new Pair<>(null, oldLastIndex + 1))
-                    .addEdge2Ver(oldLastIndex, new Pair<>(null, NFA1.first.getVerNum() - 1))
-                    .addEdge2Ver(NFA1.first.getVerNum() - 2, new Pair<>(null, NFA1.first.getVerNum() - 1));
+                    .addEdge2Ver(oldLastIndex, new Pair<>(null, NFA1.getVerNum() - 1))
+                    .addEdge2Ver(NFA1.getVerNum() - 2, new Pair<>(null, NFA1.getVerNum() - 1));
         } catch (InvalidTypeException ite) {
             throw new RuntimeException("incompatible NFA2 graph type!");
         }
@@ -1878,21 +1905,21 @@ public class Reg2Automata {
      * @return
      *      NFA = (NFA1)(NFA2), and NFA use the object of NFA1, NFA2 now is useless.
      */
-    private static Pair<Graph<Integer, String>, Integer> OpAnd(Pair<Graph<Integer, String>, Integer> NFA2,
-                                                Pair<Graph<Integer, String>, Integer> NFA1) throws Exception {
+    private static Graph<Integer, String> OpAnd(Graph<Integer, String> NFA2,
+                                                Graph<Integer, String> NFA1) throws Exception {
         // check
-        if (NFA1.first.getVerNum() < 2 || NFA2.first.getVerNum() < 2) {
+        if (NFA1.getVerNum() < 2 || NFA2.getVerNum() < 2) {
             throw new Exception("NFA1 and NFA2's vertex number must large than or equal to 2!");
         }
 
         try {
-            int oldLastIndex = NFA1.first.getVerNum() - 1;
+            int oldLastIndex = NFA1.getVerNum() - 1;
             // null indicate epsilon expression
             // according to McNaughton-Yamada-Thompson Algorithms, there is should not use epsilon expression to
             // concatenate two NFAs, just let last vertex of NFA1 combine with the first vertex of NFA2
             // but remove operation will influence stateCount and I don't want to handle it.
             // so there is a bit inconsistent with McNaughton-Yamada-Thompson Algorithms
-            NFA1.first.concate(NFA2.first)
+            NFA1.concate(NFA2)
                     .addEdge2Ver(oldLastIndex, new Pair<>(null, oldLastIndex + 1));
         } catch (InvalidTypeException ite) {
             throw new RuntimeException("incompatible NFA2 graph type!");
@@ -1912,20 +1939,20 @@ public class Reg2Automata {
      * @throws Exception
      *      if NFA's vertex number less than 2
      */
-    private static Pair<Graph<Integer, String>, Integer> OpClosure(Pair<Graph<Integer, String>, Integer> NFA,
+    private static Graph<Integer, String> OpClosure(Graph<Integer, String> NFA,
                                                     Pointer<Integer> ptStateCnt) throws Exception {
         // check
-        if (NFA.first.getVerNum() < 2) {
+        if (NFA.getVerNum() < 2) {
             throw new Exception("NFA's vertex number must large than or equal to 2!");
         }
 
         // null indicates epsilon expression
-        NFA.first.addVerFirst(ptStateCnt.item++)
+        NFA.addVerFirst(ptStateCnt.item++)
                 .addVer(ptStateCnt.item++)
                 .addEdge2Ver(0, new Pair<>(null, 1))
-                .addEdge2Ver(0, new Pair<>(null, NFA.first.getVerNum() - 1))
-                .addEdge2Ver(NFA.first.getVerNum() - 2, new Pair<>(null, 1))
-                .addEdge2Ver(NFA.first.getVerNum() - 2, new Pair<>(null, NFA.first.getVerNum() - 1));
+                .addEdge2Ver(0, new Pair<>(null, NFA.getVerNum() - 1))
+                .addEdge2Ver(NFA.getVerNum() - 2, new Pair<>(null, 1))
+                .addEdge2Ver(NFA.getVerNum() - 2, new Pair<>(null, NFA.getVerNum() - 1));
 
         return NFA;
     }
@@ -1938,14 +1965,12 @@ public class Reg2Automata {
      *          pointer of state count
      * @param operands
      *          Stack of operands
-     * @param leftIndex
-     *          left index of str
      * @param alphabet
      *          alphabet \Sigma
      */
     private static void basicRule(Pointer<Integer> ptStateCnt,
-                                  Stack<Pair<Graph<Integer, String>, Integer>> operands,
-                                  String str, int leftIndex, Set<String> alphabet) {
+                                  Stack<Graph<Integer, String>> operands,
+                                  String str, Set<String> alphabet) {
         // debug
         // System.out.println(str);
 
@@ -1953,7 +1978,7 @@ public class Reg2Automata {
         NFA.addVer(ptStateCnt.item++)
                 .addVer(ptStateCnt.item++)
                 .addEdge2Ver(0, new Pair<>(str, 1));
-        operands.push(new Pair<>(NFA, leftIndex));
+        operands.push(NFA);
         alphabet.add(str);
     }
 
@@ -1964,8 +1989,8 @@ public class Reg2Automata {
      *
      * Basic regex expression, only have concatenation, or, closure operations and parentheses.
      *
-     * operation priorities: left parentheses > * > |(left-associative)
-     *  == concatenation(right-associative) > right parentheses
+     * operation priorities: left parentheses > *(left-associative) > concatenation(left-associative)
+     * > |(left-associative) > right parentheses
      *
      * @param regExp
      *          regex expression, all elements should in alphabet \Sigma
@@ -1982,127 +2007,94 @@ public class Reg2Automata {
         // of two sub NFAs using the rules McNaughton-Yamada-Thompson uses.
 
         // Dijkstra's two stack expression evaluation(or parse a syntax tree)
-        Stack<Pair<Character, Integer>> ops = new Stack<>();
-        Stack<Pair<Graph<Integer, String>, Integer>> operands = new Stack<>();
+        Stack<Graph<Integer, String>> operands = new Stack<>();
+        Stack<Character> ops = new Stack<>();
 
         final char or = '|';
         final char closure = '*';
         final char openingBracket = '(';
         final char closingBracket = ')';
+        // in fact, and operator has no character representation
+        final char and = '&';
         // alphabet or vocabulary
         final String alphabetReg = ".";
+
+        // operator priorities
+        final HashMap<Character, Integer> priorities = new HashMap<>();
+        priorities.put('|', 1);
+        // in fact, and operator has no character representation
+        priorities.put('&', 2);
+        priorities.put('*', 3);
+        // priority that can ignore
+        priorities.put('(', 0);
 
         // count the number of states in the NFA
         Integer stateCount = 0;
         Pointer<Integer> ptStateCnt = new Pointer<>(stateCount);
-        // str without operator lower index
-        int lower = -1;
 
         // according to McNaughton-Yamada-Thompson Algorithms in Dragon Book,
-        // element with no operators is single character. to simplify e-NFA,
-        // i parse it with whole string, but the process will become more complex
+        // element with no operators is single character.
         Set<String> alphabet = new HashSet<>();
 
         try {
-            for (int i = 0; i < regExp.length(); i++) {
-                char c = regExp.charAt(i);
-                if (c == or) {
-                    if (lower != -1) {
-                        basicRule(ptStateCnt, operands, regExp.substring(lower, i), lower, alphabet);
-                        lower = -1;
-                    }
-
-                    while (!ops.isEmpty() && ops.peek().first == or) {
-                        ops.pop();
-                        operands.push(OpOr(operands.pop(), operands.pop(), ptStateCnt));
-                    }
-
-                    ops.push(new Pair<>(c, i));
-                } else if (c == openingBracket) {
-                    if (lower != -1) {
-                        basicRule(ptStateCnt, operands, regExp.substring(lower, i), lower, alphabet);
-                        lower = -1;
-                    }
-
-                    ops.push(new Pair<>(c, i));
-                } else if (c == closure) {
-                    if (lower != -1) {
-                        basicRule(ptStateCnt, operands, regExp.substring(lower, i), lower, alphabet);
-                        lower = -1;
-                    }
-
-                    OpClosure(operands.peek(), ptStateCnt);
-                } else if (c == closingBracket) {
-                    if (lower != -1) {
-                        basicRule(ptStateCnt, operands, regExp.substring(lower, i), lower, alphabet);
-                        lower = -1;
-                    }
-
-                    // may be multiple '|'
-                    // (sub_exp)|(sub_exp)(sub_exp)|(sub_exp)(sub_exp)
-                    while (!ops.isEmpty() && ops.peek().first == or) {
-                        ops.pop();
-                        operands.push(OpOr(operands.pop(), operands.pop(), ptStateCnt));
-                    }
-
-                    // (sub_exp)(sub_exp)
-                    while (operands.getSize() > 1) {
-                        Pair<Graph<Integer, String>, Integer> operand2 = operands.pop();
-                        if (ops.peek().first != openingBracket || operand2.second < ops.peek().second) {
-                            operands.push(operand2);
-                            // sub_exp()
-                            // parentheses with epsilon
-                            break;
+            Character last = null;
+            for (char c : regExp.toCharArray()) {
+                switch (c) {
+                    case openingBracket:
+                        if (last != null && last != or) {
+                            // and operator
+                            ops.push(and);
                         }
-                        Pair<Graph<Integer, String>, Integer> operand1 = operands.pop();
-                        if (ops.peek().first != openingBracket || operand1.second < ops.peek().second) {
-                            operands.push(operand1);
-                            operands.push(operand2);
-                            // sub_exp|(sub_exp)
-                            break;
+                        last = c;
+                        ops.push(c);
+                        break;
+                    case closure:
+                        last = c;
+                        ops.push(c);
+                        op(closure, operands, ptStateCnt);
+                        while (!ops.isEmpty() && priorities.get(ops.peek()) >= priorities.get(c)) {
+                            // in the case, ops.pop() is only '*'
+                            op(ops.pop(), operands, ptStateCnt);
                         }
-                        operands.push(OpAnd(operand2, operand1));
-                    }
-
-                    // pop '('
-                    ops.pop();
-                } else {
-                    // according to McNaughton-Yamada-Thompson Algorithms in Dragon Book,
-                    // element with no operators is single character. to simplify e-NFA,
-                    // i parse it with whole string, but the process will become more complex
-                    if (("" + c).matches(alphabetReg)) {
-                        if (lower == -1)
-                            lower = i;
-                    } else {
-                        System.err.println("There are some characters invalid(i.e., not in alphabet)");
-                    }
+                        break;
+                    case or:
+                        last = c;
+                        while (!ops.isEmpty() && priorities.get(ops.peek()) >= priorities.get(c)) {
+                            // &, *, |
+                            op(ops.pop(), operands, ptStateCnt);
+                        }
+                        ops.push(c);
+                        break;
+                    case closingBracket:
+                        last = c;
+                        // execute operation until encounter '('
+                        while (ops.peek() != '(') {
+                            // &, *, |
+                            op(ops.pop(), operands, ptStateCnt);
+                        }
+                        // '('
+                        ops.pop();
+                        break;
+                    default:
+                        basicRule(ptStateCnt, operands, Character.toString(c), alphabet);
+                        if (last != null && last != openingBracket && last != or) {
+                            // and operator
+                            ops.push('&');
+                        }
+                        last = c;
+                        break;
                 }
             }
-
-            // if there is only a string like "abb"
-            if (lower != -1) {
-                basicRule(ptStateCnt, operands, regExp.substring(lower, regExp.length()), lower, alphabet);
-            }
-
-            // if there are some cases like (another_subexpression)|(other_subexpression)
-            if (ops.getSize() > 0) {
-                // may be multiple '|'
-                while (!ops.isEmpty() && ops.peek().first == or) {
-                    ops.pop();
-                    operands.push(OpOr(operands.pop(), operands.pop(), ptStateCnt));
-                }
-            }
-
-            // (sub_exp)(sub_exp)
-            while (operands.getSize() > 1) {
-                operands.push(OpAnd(operands.pop(), operands.pop()));
-            }
-
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return new Pair<>(operands.pop().first, alphabet);
+        // 最后相当于还有一个 ')'
+        while (!ops.isEmpty()) {
+            op(ops.pop(), operands, ptStateCnt);
+        }
+
+        return new Pair<>(operands.pop(), alphabet);
     }
 
     /**
@@ -2456,17 +2448,6 @@ public class Reg2Automata {
      */
     @SuppressWarnings("unchecked")
     static Boolean simulateDFA(String s, String regExp) {
-        // 为了弥补我原来为了显示简介点把不包含操作符的子串直接作为字典中的一个元素, 现在所有的字母表中的非操作符字符
-        // 全部用括号封装
-        StringBuilder sb = new StringBuilder();
-        for (char c : regExp.toCharArray()) {
-            if (c != '*' && c != '(' && c != ')' && c != '|')
-                sb.append('(').append(c).append(')');
-            else
-                sb.append(c);
-        }
-        regExp = sb.toString();
-
         Bag<Integer> finals = new Bag<>();
         Graph<Integer, String> dfa = NFA2DFA(reg2NFA(regExp), finals).first;
 

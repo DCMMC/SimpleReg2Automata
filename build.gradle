@@ -25,28 +25,25 @@ mainClassName = 'tk.dcmmc.Reg2AutomataGUI'
 
 /**
  * 1st approach: Setting encoding during compilation in Java and Test classes
-  */
-  compileJava.options.encoding = "UTF-8"
-  compileTestJava.options.encoding = "UTF-8"
-  
+ */
+compileJava.options.encoding = "UTF-8"
+compileTestJava.options.encoding = "UTF-8"
 
 // support for java9
 compileJava {
-    if(JavaVersion.current() == JavaVersion.VERSION_1_9 || JavaVersion.current() == 
-		JavaVersion.VERSION_1_10)
-   	 options.compilerArgs += ["--add-modules", "java.xml.bind,java.xml.ws.annotation"]
+    if(JavaVersion.current() == JavaVersion.VERSION_1_9 || JavaVersion.current() ==
+            JavaVersion.VERSION_1_10) {
+        options.compilerArgs += ["--add-modules", "java.xml.bind"]
+        options.compilerArgs += ["--add-exports", "java.xml.bind/com.sun.istack.internal=ALL-UNNAMED"]
+    }
 }
 
 compileTestJava {
     if(JavaVersion.current() == JavaVersion.VERSION_1_9 || JavaVersion.current() == 
-		JavaVersion.VERSION_1_10)
-    	options.compilerArgs += ["--add-modules", "java.xml.bind,java.xml.ws.annotation"]
-}
-
-test {
-    if(JavaVersion.current() == JavaVersion.VERSION_1_9 || JavaVersion.current() == 
-		JavaVersion.VERSION_1_10)
-    	jvmArgs += ["--add-modules", "java.xml.bind,java.xml.ws.annotation"]
+		JavaVersion.VERSION_1_10) {
+        options.compilerArgs += ["--add-modules", "java.xml.bind"]
+        options.compilerArgs += ["--add-exports", "java.xml.bind/com.sun.istack.internal=ALL-UNNAMED"]
+    }
 }
 
 // In this section you declare where to find the dependencies of your project
@@ -90,4 +87,7 @@ dependencies {
     // svg
     // implementation 'com.github.DCMMC:svgSalamander:v1.1.1'
     compile 'com.github.elbosso:batik:mitigating-java9-module-system-screw-up-SNAPSHOT'
+
+    // annotation
+    compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.0'
 }
