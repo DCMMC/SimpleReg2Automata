@@ -16,6 +16,10 @@ plugins {
     id 'idea'
 }
 
+task wrapper(type: Wrapper) {
+   gradleVersion = '4.6' //version required
+}
+
 // Define the main class for the application
 mainClassName = 'tk.dcmmc.Reg2AutomataGUI'
 
@@ -28,22 +32,20 @@ mainClassName = 'tk.dcmmc.Reg2AutomataGUI'
 
 // support for java9
 compileJava {
-    if(JavaVersion.current() == JavaVersion.VERSION_1_9)
+    if(JavaVersion.current() == JavaVersion.VERSION_1_9 || JavaVersion.current() == 
+		JavaVersion.VERSION_1_10)
    	 options.compilerArgs += ["--add-modules", "java.xml.bind,java.xml.ws.annotation"]
 }
 
 compileTestJava {
-    if(JavaVersion.current() == JavaVersion.VERSION_1_9)
+    if(JavaVersion.current() == JavaVersion.VERSION_1_9 || JavaVersion.current() == 
+		JavaVersion.VERSION_1_10)
     	options.compilerArgs += ["--add-modules", "java.xml.bind,java.xml.ws.annotation"]
 }
 
 test {
-    if(JavaVersion.current() == JavaVersion.VERSION_1_9)
-    	jvmArgs += ["--add-modules", "java.xml.bind,java.xml.ws.annotation"]
-}
-
-tasks.withType(JavaExec) {
-    if(JavaVersion.current() == JavaVersion.VERSION_1_9)
+    if(JavaVersion.current() == JavaVersion.VERSION_1_9 || JavaVersion.current() == 
+		JavaVersion.VERSION_1_10)
     	jvmArgs += ["--add-modules", "java.xml.bind,java.xml.ws.annotation"]
 }
 
@@ -76,7 +78,8 @@ dependencies {
     testCompile 'junit:junit:4.12'
 
     // MD
-    if(JavaVersion.current() == JavaVersion.VERSION_1_9)
+    if(JavaVersion.current() == JavaVersion.VERSION_1_9 || JavaVersion.current() == 
+		JavaVersion.VERSION_1_10)
     	compile 'com.jfoenix:jfoenix:9.0.3' // Java 9
     else if(JavaVersion.current() == JavaVersion.VERSION_1_8)
         compile 'com.jfoenix:jfoenix:8.0.3' // Java 8

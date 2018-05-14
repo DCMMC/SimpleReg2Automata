@@ -36,6 +36,7 @@ class JSVGCanvasMouse extends JSVGCanvas implements MouseListener, MouseWheelLis
     /**
      * 滚轮事件
      * @param e
+     *      event
      */
     @Override
     public void mouseWheelMoved(MouseWheelEvent e) {
@@ -105,6 +106,14 @@ public class Reg2AutomataGUI extends Application {
             regStr.setOnAction((e) -> root.requestFocus());
 
             primaryStage.setAlwaysOnTop(true);
+            primaryStage.setOnCloseRequest((e) -> {
+                try {
+                    stop();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            });
+
             primaryStage.show();
         } catch (IOException ioe) {
             ioe.printStackTrace();
