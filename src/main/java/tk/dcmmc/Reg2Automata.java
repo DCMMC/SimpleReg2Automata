@@ -14,7 +14,7 @@ import java.security.InvalidParameterException;
 import java.util.*;
 import java.lang.reflect.Array;
 import java.util.stream.IntStream;
-import com.sun.istack.internal.NotNull;
+//import com.sun.istack.internal.NotNull;
 
 import static guru.nidi.graphviz.model.Factory.graph;
 import static guru.nidi.graphviz.model.Factory.node;
@@ -303,7 +303,7 @@ class Bag<Item> implements Iterable<Item> {
      *
      * @return an Iterator.
      */
-    @NotNull
+//    @NotNull
     public Iterator<Item> iterator() {
         return this.new BagIterator();
     }
