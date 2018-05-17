@@ -625,6 +625,7 @@ class DoubleLinkedList<Item> implements Iterable<Item> {
                     }
                 } else {
                     current.previous.next = current.next;
+                    current.next.previous = current.previous;
                 }
                 size--;
                 opsCnt++;
@@ -1957,7 +1958,6 @@ public class Reg2Automata {
         return NFA;
     }
 
-
     /**
      * Basic Rule of McNaughton-Yamada-Thompson Algorithms
      *
@@ -2041,7 +2041,7 @@ public class Reg2Automata {
             for (char c : regExp.toCharArray()) {
                 switch (c) {
                     case openingBracket:
-                        if (last != null && last != or) {
+                        if (last != null && last != or && last != openingBracket) {
                             // and operator
                             ops.push(and);
                         }
@@ -2050,8 +2050,7 @@ public class Reg2Automata {
                         break;
                     case closure:
                         last = c;
-                        ops.push(c);
-                        op(closure, operands, ptStateCnt);
+                        op(c, operands, ptStateCnt);
                         while (!ops.isEmpty() && priorities.get(ops.peek()) >= priorities.get(c)) {
                             // in the case, ops.pop() is only '*'
                             op(ops.pop(), operands, ptStateCnt);
@@ -2287,16 +2286,18 @@ public class Reg2Automata {
             // 标记是否所有集合, 集合里面的元素都是完全相等了
             // boolean end = true;
 
+            // statesList 为当前的(希望是)等价的状态集合的列表
             for (HashSet<Integer> l : statesList) {
                 // in the end of loop, all the values are one element
                 // inner map 必须是 Linked 的, 因为要保存顺序
                 HashMap<String, LinkedHashMap<Integer, HashSet<Integer>>> map = new HashMap<>();
+                // 通过字母表一个一个去尝试
                 for (String s : alphabet) {
                     for (Integer v : l) {
                         // !!!注意: 空集也是一种状态!!!, 两个状态等价必须还满足经过同一 input symbol 如果有一个是空集那么另外一个也一定是空集!
                         boolean emptyState = true;
 
-                        // 查找这一状态集合中所有状态通过 input symbol s 能够到达的状态集合
+                        // 查找这一(希望是等价的)状态集合中所有状态通过 input symbol s 能够到达的状态集合
                         for (Pair<String, Object> edge :
                                 (DFA.getVertexNodeByValue(v).item).first) {
                             // 状态 v 能够通过 s 到达新状态
@@ -2594,16 +2595,16 @@ public class Reg2Automata {
 //            e.printStackTrace();
 //        }
 
-        String testReg1 = "a|b";
+        String testReg1 = "((a|b)*ab(a)*(b)*)*a";
         try {
             Bag<Integer> newFinals = new Bag<>();
-            graphvizDraw(reg2NFA(testReg1).first, "NFA.png",
+            graphvizDraw(reg2NFA(testReg1).first, "NFA.svg",
                     null, Format.SVG);
             graphvizDraw(NFA2DFA(reg2NFA(testReg1), newFinals).first,
-                    "DFA.png", newFinals, Format.SVG);
+                    "DFA.svg", newFinals, Format.SVG);
             Pointer<Bag<Integer>> ptFinals = new Pointer<>(newFinals);
             graphvizDraw(minimizeDFA(NFA2DFA(reg2NFA(testReg1),
-                    newFinals), ptFinals).first, "minimized-DFA.png", ptFinals.item, Format.SVG);
+                    newFinals), ptFinals).first, "minimized-DFA.svg", ptFinals.item, Format.SVG);
         } catch (Exception e) {
             e.printStackTrace();
         }
