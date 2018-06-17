@@ -1983,7 +1983,7 @@ public class Reg2Automata {
     }
 
     /**
-     * P152 3.7.4 Algorithm 3.23
+     * P160 3.7.4 Algorithm 3.23
      *
      * Regex expression to NFA using McNaughton-Yamada-Thompson Algorithms (i.e. Thompson 法)
      *
