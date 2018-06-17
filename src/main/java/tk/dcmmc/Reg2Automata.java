@@ -2170,7 +2170,9 @@ public class Reg2Automata {
         // The DFA's start state is ε-closure(s_0). suppose that N can be in set of states T after reading input
         // string x. if it next reads input a, then N could be in any state of ε-closure(move(T, a))
         // the Bag<Integer> is the set of state in NFA in order(e.g. {1 5 6 7})
-        // **must use LinkedHashMap to store the order of D-states, because the first ket of Map is the start
+        // coordinate (x, y) (i.e., row x, colum y) indicates ε-closure(move(x, y)), x is a set of NFA states
+        // (i.e., a new state in DFA), y is a symbol in vocabulary \sigma.
+        // **must use LinkedHashMap to store the order of D-states, because the first key of Map is the start
         // state**, but it will use more space to keep a LinkedList.
         LinkedHashMap<Bag<Integer>, HashMap<String, Bag<Integer>>> Dtrans = new LinkedHashMap<>();
 
